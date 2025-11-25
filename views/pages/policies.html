@@ -1,0 +1,53 @@
+{{ define "content" }}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-white">Policies</h1>
+            <p class="text-zinc-400 text-sm mt-1">IAM policies available for assignment</p>
+        </div>
+    </div>
+
+    <!-- Policies Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {{ range .Policies }}
+        <div class="bg-surface border border-border rounded-xl p-5 hover:border-zinc-600 transition-colors">
+            <div class="flex items-start justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-zinc-800/50 rounded-lg text-zinc-400">
+                        <i data-lucide="shield" size="18"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-medium text-white">{{ . }}</h3>
+                        <p class="text-xs text-zinc-500 mt-0.5">
+                            {{ if eq . "readwrite" }}Full read/write access{{ end }}
+                            {{ if eq . "readonly" }}Read-only access{{ end }}
+                            {{ if eq . "writeonly" }}Write-only access{{ end }}
+                            {{ if eq . "consoleAdmin" }}Console administrator{{ end }}
+                            {{ if eq . "diagnostics" }}Diagnostics access{{ end }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {{ else }}
+        <div class="col-span-full">
+            <div class="bg-surface border border-border rounded-xl p-12 text-center">
+                <i data-lucide="shield-off" size="32" class="text-zinc-500 mx-auto mb-3"></i>
+                <p class="text-zinc-500">No policies found</p>
+            </div>
+        </div>
+        {{ end }}
+    </div>
+
+    <!-- Info -->
+    <div class="bg-zinc-800/30 border border-zinc-700/50 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+            <i data-lucide="info" size="18" class="text-zinc-500 mt-0.5"></i>
+            <div class="text-sm text-zinc-400">
+                <p>To attach a policy to a user, go to the <a href="/users" class="text-white hover:underline">Users</a> page and select "Manage Policy" from the user's actions menu.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}

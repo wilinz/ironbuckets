@@ -1,0 +1,10 @@
+{
+  "name": "ironbuckets-e2e",
+  "version": "1.0.0",
+  "description": "End-to-end tests for IronBuckets",
+  "scripts": {},
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/node": "^20.10.0"
+  }
+}

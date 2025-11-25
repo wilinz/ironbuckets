@@ -1,0 +1,154 @@
+{{ define "base" }}
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IronBuckets (Go/Admin)</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#09090b', // Zinc 950
+                        surface: '#18181b', // Zinc 900
+                        border: '#27272a', // Zinc 800
+                        accent: '#2563eb', // Blue 600
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <!-- Alpine.js -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Showing HTMX attributes for visualization only */
+        .htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
+        .htmx-request .htmx-indicator { opacity: 1; }
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-background text-zinc-100 h-screen w-screen flex overflow-hidden" x-data="{ collapsed: false }">
+
+    <!-- SIDEBAR -->
+    <div
+        class="border-r border-border bg-surface flex flex-col transition-all duration-300 ease-in-out w-64"
+        :class="collapsed ? '!w-20' : ''"
+    >
+        <div class="p-6 flex items-center gap-3 border-b border-border/50 overflow-hidden whitespace-nowrap">
+            <div class="w-8 h-8 bg-zinc-100 rounded-lg flex-shrink-0 flex items-center justify-center cursor-pointer" @click="collapsed = !collapsed">
+                <i data-lucide="box" class="text-black"></i>
+            </div>
+            <span class="font-bold text-lg tracking-tight transition-opacity duration-300 opacity-100" :class="collapsed ? '!opacity-0 !w-0' : ''">IronBuckets</span>
+        </div>
+
+        <div class="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden">
+
+            <!-- Section Header -->
+            <div class="px-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 transition-opacity duration-300 whitespace-nowrap opacity-100"
+                 :class="collapsed ? '!opacity-0 !h-0 !overflow-hidden !mb-0' : ''">
+                 Cluster
+            </div>
+
+            <!-- Nav Items -->
+            <a href="/" class="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap {{ if eq .ActiveNav "overview" }}bg-white/10 text-white{{ else }}text-zinc-400 hover:text-white hover:bg-white/5{{ end }}">
+                <i data-lucide="activity" size="18" class="flex-shrink-0"></i>
+                <span class="opacity-100" :class="collapsed ? '!opacity-0 !w-0' : ''">Overview</span>
+            </a>
+
+            <a href="/drives" class="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap {{ if eq .ActiveNav "drives" }}bg-white/10 text-white{{ else }}text-zinc-400 hover:text-white hover:bg-white/5{{ end }}">
+                <i data-lucide="hard-drive" size="18" class="flex-shrink-0"></i>
+                <span class="opacity-100" :class="collapsed ? '!opacity-0 !w-0' : ''">Drives</span>
+            </a>
+
+            <!-- Section Header -->
+            <div class="px-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 mt-6 transition-opacity duration-300 whitespace-nowrap opacity-100"
+                 :class="collapsed ? '!opacity-0 !h-0 !overflow-hidden !mt-2 !mb-0' : ''">
+                 Access
+            </div>
+
+            <a href="/users" class="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap {{ if eq .ActiveNav "users" }}bg-white/10 text-white{{ else }}text-zinc-400 hover:text-white hover:bg-white/5{{ end }}">
+                <i data-lucide="user" size="18" class="flex-shrink-0"></i>
+                <span class="opacity-100" :class="collapsed ? '!opacity-0 !w-0' : ''">Users</span>
+            </a>
+
+            <a href="/groups" class="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap {{ if eq .ActiveNav "groups" }}bg-white/10 text-white{{ else }}text-zinc-400 hover:text-white hover:bg-white/5{{ end }}">
+                <i data-lucide="users" size="18" class="flex-shrink-0"></i>
+                <span class="opacity-100" :class="collapsed ? '!opacity-0 !w-0' : ''">Groups</span>
+            </a>
+
+            <a href="/buckets" class="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap {{ if eq .ActiveNav "buckets" }}bg-white/10 text-white{{ else }}text-zinc-400 hover:text-white hover:bg-white/5{{ end }}">
+                <i data-lucide="container" size="18" class="flex-shrink-0"></i>
+                <span class="opacity-100" :class="collapsed ? '!opacity-0 !w-0' : ''">Buckets</span>
+            </a>
+
+            <!-- Section Header -->
+            <div class="px-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 mt-6 transition-opacity duration-300 whitespace-nowrap opacity-100"
+                 :class="collapsed ? '!opacity-0 !h-0 !overflow-hidden !mt-2 !mb-0' : ''">
+                 System
+            </div>
+
+            <a href="/settings" class="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap {{ if eq .ActiveNav "settings" }}bg-white/10 text-white{{ else }}text-zinc-400 hover:text-white hover:bg-white/5{{ end }}">
+                <i data-lucide="settings" size="18" class="flex-shrink-0"></i>
+                <span class="opacity-100" :class="collapsed ? '!opacity-0 !w-0' : ''">Settings</span>
+            </a>
+
+            <!-- Logout at bottom -->
+            <div class="mt-auto pt-4 border-t border-border">
+                <a href="/logout" class="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-zinc-400 hover:text-red-400 hover:bg-red-500/10">
+                    <i data-lucide="log-out" size="18" class="flex-shrink-0"></i>
+                    <span class="opacity-100" :class="collapsed ? '!opacity-0 !w-0' : ''">Logout</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 flex flex-col min-w-0 bg-background overflow-auto">
+        <!-- Header -->
+        <header class="h-16 border-b border-border flex items-center justify-between px-8 bg-background/50 backdrop-blur-sm sticky top-0 z-10">
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="text-sm font-medium text-zinc-300">Cluster Online</span>
+                <span class="text-xs text-zinc-500 ml-2" hx-get="/api/server/version" hx-trigger="load" hx-swap="innerHTML"></span>
+            </div>
+            <!-- Right side items if needed -->
+            <div class="flex items-center gap-4">
+                 <!-- Removed Restart Button, moved to Settings -->
+            </div>
+        </header>
+
+        <!-- Content Block -->
+        <div class="p-8 space-y-8">
+            {{ block "content" . }}{{ end }}
+        </div>
+    </main>
+
+    <!-- Styled Confirm Dialog -->
+    {{ template "confirm_dialog" }}
+
+    <script>
+        // Init Icons
+        lucide.createIcons();
+
+        // Re-init icons on HTMX content swaps
+        document.body.addEventListener('htmx:afterSwap', function(evt) {
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>
+{{ end }}

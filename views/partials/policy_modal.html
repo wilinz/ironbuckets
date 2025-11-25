@@ -1,0 +1,44 @@
+{{ define "policy_modal" }}
+<dialog id="policy-dialog" class="bg-transparent p-0 m-0 max-w-none w-full h-full backdrop:bg-black/60" open>
+    <div class="fixed inset-0 flex items-center justify-center p-4">
+        <div class="bg-surface border border-border rounded-xl p-6 w-full max-w-md shadow-2xl">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-semibold text-white">Manage Policy</h3>
+                <button onclick="document.getElementById('policy-dialog').close()"
+                    class="p-1 text-zinc-400 hover:text-white">
+                    <i data-lucide="x" size="18"></i>
+                </button>
+            </div>
+
+            <p class="text-sm text-zinc-400 mb-4">Assign a policy to <span class="text-white font-medium">{{ .AccessKey }}</span></p>
+
+            <form hx-post="/users/{{ .AccessKey }}/policy" hx-swap="none">
+                <div class="mb-6">
+                    <label class="block text-sm text-zinc-400 mb-2">Select Policy</label>
+                    <select name="policy" required
+                        class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-zinc-500">
+                        <option value="">Choose a policy...</option>
+                        {{ range .Policies }}
+                        <option value="{{ . }}">{{ . }}</option>
+                        {{ end }}
+                    </select>
+                </div>
+
+                <div class="flex gap-3">
+                    <button type="button" onclick="document.getElementById('policy-dialog').close()"
+                        class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="flex-1 bg-white hover:bg-zinc-200 text-black px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        Attach Policy
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</dialog>
+<script>
+    lucide.createIcons();
+</script>
+{{ end }}

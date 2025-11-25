@@ -1,0 +1,37 @@
+{{ define "replication" }}
+<div class="space-y-4">
+    {{ if .HasReplication }}
+    <div class="space-y-2">
+        {{ range .Rules }}
+        <div class="flex items-center justify-between p-3 bg-zinc-800/50 rounded-lg">
+            <div class="flex items-center gap-3">
+                <div class="p-1.5 bg-zinc-700 rounded">
+                    <i data-lucide="copy" size="14" class="text-blue-400"></i>
+                </div>
+                <div>
+                    <div class="text-sm font-medium text-white">{{ .ID }}</div>
+                    <div class="text-xs text-zinc-500 truncate max-w-[250px]" title="{{ .Destination }}">
+                        To: {{ .Destination }}
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                {{ if eq .Status "Enabled" }}
+                <span class="text-xs bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded">Active</span>
+                {{ else }}
+                <span class="text-xs bg-zinc-500/10 text-zinc-400 px-2 py-0.5 rounded">Disabled</span>
+                {{ end }}
+                <span class="text-xs text-zinc-500">Priority: {{ .Priority }}</span>
+            </div>
+        </div>
+        {{ end }}
+    </div>
+    {{ else }}
+    <div class="text-center py-6 text-zinc-500">
+        <i data-lucide="copy" size="24" class="mx-auto mb-2 opacity-50"></i>
+        <p class="text-sm">No replication rules configured</p>
+        <p class="text-xs mt-1">Requires a secondary MinIO instance</p>
+    </div>
+    {{ end }}
+</div>
+{{ end }}

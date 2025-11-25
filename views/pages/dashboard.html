@@ -1,0 +1,56 @@
+{{ define "content" }}
+<!-- Health Stats -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <!-- Server Info -->
+    <div hx-get="/api/server/widget" hx-trigger="load" hx-swap="outerHTML">
+        <div class="bg-surface border border-border rounded-xl p-5">
+            <div class="flex justify-between items-start mb-4">
+                <div class="p-2 bg-zinc-800/50 rounded-lg text-zinc-400"><i data-lucide="server"></i></div>
+                <span class="text-xs text-zinc-500 bg-zinc-800 px-2 py-1 rounded">Loading...</span>
+            </div>
+            <div class="text-2xl font-bold text-white mb-1">--</div>
+            <div class="text-sm text-zinc-500 font-medium">Server Info</div>
+        </div>
+    </div>
+
+    <!-- Drives -->
+    <div hx-get="/api/drives/widget" hx-trigger="load" hx-swap="outerHTML">
+        <div class="bg-surface border border-border rounded-xl p-5">
+            <div class="flex justify-between items-start mb-4">
+                <div class="p-2 bg-zinc-800/50 rounded-lg text-zinc-400"><i data-lucide="hard-drive"></i></div>
+                <span class="text-xs text-zinc-500 bg-zinc-800 px-2 py-1 rounded">Loading...</span>
+            </div>
+            <div class="text-2xl font-bold text-white mb-1">-- / --</div>
+            <div class="text-sm text-zinc-500 font-medium">Online Drives</div>
+        </div>
+    </div>
+
+    <!-- Storage -->
+    <div hx-get="/api/storage/widget" hx-trigger="load" hx-swap="outerHTML">
+        <div class="bg-surface border border-border rounded-xl p-5">
+            <div class="flex justify-between items-start mb-4">
+                <div class="p-2 bg-zinc-800/50 rounded-lg text-zinc-400"><i data-lucide="database"></i></div>
+            </div>
+            <div class="text-2xl font-bold text-white mb-1">--</div>
+            <div class="text-sm text-zinc-500 font-medium">Used Space</div>
+            <div class="text-xs text-zinc-600 mt-2">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Users -->
+    <div hx-get="/api/users/widget" hx-trigger="load" hx-swap="outerHTML">
+        <div class="bg-surface border border-border rounded-xl p-5">
+            <div class="flex justify-between items-start mb-4">
+                <div class="p-2 bg-zinc-800/50 rounded-lg text-zinc-400"><i data-lucide="users"></i></div>
+                <span class="text-xs text-zinc-500 bg-zinc-800 px-2 py-1 rounded">Loading...</span>
+            </div>
+            <div class="text-2xl font-bold text-white mb-1">--</div>
+            <div class="text-sm text-zinc-500 font-medium">Identity Users</div>
+            <div class="text-xs text-zinc-600 mt-2">Loading...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Placeholder -->
+<div id="modal"></div>
+{{ end }}

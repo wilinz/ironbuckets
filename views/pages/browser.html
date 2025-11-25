@@ -1,0 +1,716 @@
+{{ define "base" }}
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .BucketName }} - IronBuckets</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#09090b',
+                        surface: '#18181b',
+                        border: '#27272a',
+                        accent: '#2563eb',
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .drop-active { background-color: rgba(37, 99, 235, 0.1); border-color: #2563eb !important; }
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-background text-zinc-100 flex h-screen overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="w-64 border-r border-border bg-surface flex flex-col">
+        <div class="p-6 flex items-center gap-3">
+            <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+                <i data-lucide="box" class="text-black w-5 h-5"></i>
+            </div>
+            <span class="font-bold text-lg tracking-tight">IronBuckets</span>
+        </div>
+
+        <nav class="flex-1 px-4 space-y-2 mt-4">
+            <a href="/" class="flex items-center gap-3 px-3 py-2 rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors">
+                <i data-lucide="layout-dashboard" size="18"></i>
+                <span class="text-sm font-medium">Overview</span>
+            </a>
+            <a href="/buckets" class="flex items-center gap-3 px-3 py-2 rounded-md bg-zinc-800 text-white transition-colors">
+                <i data-lucide="container" size="18"></i>
+                <span class="text-sm font-medium">Buckets</span>
+            </a>
+            <a href="/users" class="flex items-center gap-3 px-3 py-2 rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors">
+                <i data-lucide="users" size="18"></i>
+                <span class="text-sm font-medium">Identity</span>
+            </a>
+            <a href="/drives" class="flex items-center gap-3 px-3 py-2 rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors">
+                <i data-lucide="hard-drive" size="18"></i>
+                <span class="text-sm font-medium">Drives</span>
+            </a>
+            <a href="/settings" class="flex items-center gap-3 px-3 py-2 rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors">
+                <i data-lucide="settings" size="18"></i>
+                <span class="text-sm font-medium">Settings</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-border">
+            <a href="/logout" class="flex items-center gap-3 px-3 py-2 rounded-md text-zinc-400 hover:text-white transition-colors">
+                <i data-lucide="log-out" size="18"></i>
+                <span class="text-sm font-medium">Sign out</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="objectBrowser()" x-init="init()">
+        <!-- Header -->
+        <header class="h-16 border-b border-border bg-surface/50 backdrop-blur-sm flex items-center justify-between px-8">
+            <div class="flex items-center gap-4">
+                <a href="/buckets" class="text-zinc-400 hover:text-white">
+                    <i data-lucide="arrow-left" size="20"></i>
+                </a>
+                <!-- Breadcrumb Navigation -->
+                <nav class="flex items-center gap-2 text-sm">
+                    <a href="/buckets/{{ .BucketName }}" class="text-zinc-400 hover:text-white flex items-center gap-1">
+                        <i data-lucide="container" size="16"></i>
+                        {{ .BucketName }}
+                    </a>
+                    {{ range .Breadcrumbs }}
+                    <span class="text-zinc-600">/</span>
+                    <a href="/buckets/{{ $.BucketName }}?prefix={{ .Path }}" class="text-zinc-400 hover:text-white">{{ .Name }}</a>
+                    {{ end }}
+                </nav>
+            </div>
+            <div class="flex items-center gap-3">
+                <!-- Search -->
+                <div class="relative">
+                    <input
+                        type="text"
+                        placeholder="Search..."
+                        x-model="searchQuery"
+                        class="bg-zinc-900 border border-zinc-700 rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 w-48"
+                    />
+                    <i data-lucide="search" size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"></i>
+                </div>
+                <!-- Download All as ZIP -->
+                <a href="/buckets/{{ .BucketName }}/zip{{ if .Prefix }}?prefix={{ .Prefix }}{{ end }}"
+                    class="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors"
+                    title="Download all files as ZIP">
+                    <i data-lucide="archive" size="16"></i>
+                    Download ZIP
+                </a>
+                <!-- Create Folder -->
+                <button
+                    hx-get="/buckets/{{ .BucketName }}/folder/create{{ if .Prefix }}?prefix={{ .Prefix }}{{ end }}"
+                    hx-target="body"
+                    hx-swap="beforeend"
+                    class="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors">
+                    <i data-lucide="folder-plus" size="16"></i>
+                    New Folder
+                </button>
+                <!-- Upload Button -->
+                <button
+                    onclick="document.getElementById('upload-input').click()"
+                    class="bg-white hover:bg-zinc-200 text-black px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors">
+                    <i data-lucide="upload" size="16"></i>
+                    Upload
+                </button>
+                <form id="upload-form"
+                    hx-post="/buckets/{{ .BucketName }}/upload{{ if .Prefix }}?prefix={{ .Prefix }}{{ end }}"
+                    hx-encoding="multipart/form-data"
+                    hx-swap="none"
+                    hx-on::after-request="window.location.reload()"
+                    class="hidden">
+                    <input type="file" name="file" id="upload-input" multiple onchange="htmx.trigger('#upload-form', 'submit')">
+                </form>
+            </div>
+        </header>
+
+        <!-- Bulk Actions Bar -->
+        <div x-show="selectedFiles.length > 0" x-cloak
+            class="h-12 bg-zinc-900 border-b border-border flex items-center justify-between px-8">
+            <div class="flex items-center gap-4">
+                <span class="text-sm text-zinc-400">
+                    <span x-text="selectedFiles.length"></span> file(s) selected
+                </span>
+                <button @click="selectedFiles = []" class="text-sm text-zinc-500 hover:text-white">
+                    Clear selection
+                </button>
+            </div>
+            <div class="flex items-center gap-2">
+                <button @click="bulkDownload()"
+                    class="bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors">
+                    <i data-lucide="download" size="14"></i>
+                    Download
+                </button>
+                <button @click="bulkDelete()"
+                    class="bg-red-500/10 hover:bg-red-500/20 text-red-400 px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors">
+                    <i data-lucide="trash-2" size="14"></i>
+                    Delete
+                </button>
+            </div>
+        </div>
+
+        <!-- Object Browser -->
+        <div class="flex-1 overflow-auto p-8"
+            @dragover.prevent="isDragging = true"
+            @dragleave.prevent="isDragging = false"
+            @drop.prevent="handleFileDrop($event)"
+            :class="{ 'drop-active': isDragging }">
+
+            <!-- Drop Zone Overlay -->
+            <div x-show="isDragging" x-cloak class="fixed inset-0 bg-background/80 z-40 flex items-center justify-center pointer-events-none">
+                <div class="text-center">
+                    <i data-lucide="upload-cloud" size="64" class="text-accent mx-auto mb-4"></i>
+                    <p class="text-xl font-semibold text-white">Drop files to upload</p>
+                </div>
+            </div>
+
+            <div class="bg-surface border border-border rounded-xl overflow-hidden">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-zinc-900/50 text-zinc-400 border-b border-border">
+                        <tr>
+                            <th class="px-4 py-4 font-medium w-10">
+                                <input type="checkbox"
+                                    @change="toggleSelectAll($event)"
+                                    :checked="selectedFiles.length > 0 && selectedFiles.length === allFiles.length"
+                                    class="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-accent focus:ring-0 cursor-pointer" />
+                            </th>
+                            <th class="px-4 py-4 font-medium w-full">Name</th>
+                            <th class="px-4 py-4 font-medium whitespace-nowrap">Size</th>
+                            <th class="px-4 py-4 font-medium whitespace-nowrap">Last Modified</th>
+                            <th class="px-4 py-4 font-medium text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border" id="object-list">
+                        <!-- Folders -->
+                        {{ range .Folders }}
+                        <tr class="group hover:bg-zinc-800/50 transition-colors cursor-pointer" onclick="window.location.href='/buckets/{{ $.BucketName }}?prefix={{ .Prefix }}'">
+                            <td class="px-4 py-4" onclick="event.stopPropagation()">
+                                <!-- Folders not selectable -->
+                            </td>
+                            <td class="px-4 py-4">
+                                <div class="flex items-center gap-3">
+                                    <i data-lucide="folder" class="text-yellow-500" size="18"></i>
+                                    <span class="text-zinc-200 font-medium">{{ .Name }}</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-4 text-zinc-500">--</td>
+                            <td class="px-4 py-4 text-zinc-500">--</td>
+                            <td class="px-4 py-4 text-right" onclick="event.stopPropagation()">
+                                <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <a href="/buckets/{{ $.BucketName }}/zip?prefix={{ .Prefix }}"
+                                        class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-md transition-colors"
+                                        title="Download as ZIP">
+                                        <i data-lucide="archive" size="16"></i>
+                                    </a>
+                                    <button
+                                        hx-post="/buckets/{{ $.BucketName }}/folder/delete?prefix={{ .Prefix }}"
+                                        hx-confirm="Delete folder '{{ .Name }}' and all contents?"
+                                        hx-swap="none"
+                                        hx-on::after-request="window.location.reload()"
+                                        class="p-2 text-zinc-400 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-colors"
+                                        title="Delete Folder">
+                                        <i data-lucide="trash-2" size="16"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {{ end }}
+
+                        <!-- Files -->
+                        {{ range .Objects }}
+                        <tr class="group hover:bg-zinc-800/50 transition-colors file-row"
+                            data-key="{{ .Key }}"
+                            data-name="{{ .DisplayName }}"
+                            data-type="{{ .ContentType }}"
+                            data-previewable="{{ .IsPreviewable }}"
+                            x-show="!searchQuery || '{{ .DisplayName }}'.toLowerCase().includes(searchQuery.toLowerCase())">
+                            <td class="px-4 py-4">
+                                <input type="checkbox"
+                                    :checked="selectedFiles.includes('{{ .Key }}')"
+                                    @change="toggleSelect('{{ .Key }}')"
+                                    class="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-accent focus:ring-0 cursor-pointer" />
+                            </td>
+                            <td class="px-4 py-4">
+                                <div class="flex items-center gap-3">
+                                    {{ if .IsImage }}
+                                    <i data-lucide="image" class="text-purple-400" size="18"></i>
+                                    {{ else if .IsText }}
+                                    <i data-lucide="file-text" class="text-blue-400" size="18"></i>
+                                    {{ else if .IsVideo }}
+                                    <i data-lucide="video" class="text-pink-400" size="18"></i>
+                                    {{ else if .IsArchive }}
+                                    <i data-lucide="archive" class="text-orange-400" size="18"></i>
+                                    {{ else }}
+                                    <i data-lucide="file" class="text-zinc-500" size="18"></i>
+                                    {{ end }}
+                                    {{ if .IsPreviewable }}
+                                    <button @click="openPreview('{{ .Key }}', '{{ .DisplayName }}', '{{ .ContentType }}')"
+                                        class="text-zinc-200 font-medium hover:text-accent transition-colors text-left">
+                                        {{ .DisplayName }}
+                                    </button>
+                                    {{ else }}
+                                    <span class="text-zinc-200 font-medium">{{ .DisplayName }}</span>
+                                    {{ end }}
+                                </div>
+                            </td>
+                            <td class="px-4 py-4 text-zinc-400 whitespace-nowrap">{{ .FormattedSize }}</td>
+                            <td class="px-4 py-4 text-zinc-400 whitespace-nowrap">{{ .LastModified.Format "Jan 02, 2006 15:04" }}</td>
+                            <td class="px-4 py-4 text-right">
+                                <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {{ if .IsPreviewable }}
+                                    <button @click="openPreview('{{ .Key }}', '{{ .DisplayName }}', '{{ .ContentType }}')"
+                                        class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-md transition-colors" title="Preview">
+                                        <i data-lucide="eye" size="16"></i>
+                                    </button>
+                                    {{ end }}
+                                    <button
+                                        hx-get="/buckets/{{ $.BucketName }}/object/info?key={{ .Key }}"
+                                        hx-target="body"
+                                        hx-swap="beforeend"
+                                        class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-md transition-colors" title="Info">
+                                        <i data-lucide="info" size="16"></i>
+                                    </button>
+                                    <button
+                                        hx-post="/buckets/{{ $.BucketName }}/share"
+                                        hx-vals='{"key": "{{ .Key }}", "expires": "3600"}'
+                                        hx-target="body"
+                                        hx-swap="beforeend"
+                                        class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-md transition-colors" title="Share">
+                                        <i data-lucide="link" size="16"></i>
+                                    </button>
+                                    <a href="/buckets/{{ $.BucketName }}/download?key={{ .Key }}" class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-md transition-colors" title="Download">
+                                        <i data-lucide="download" size="16"></i>
+                                    </a>
+                                    <button hx-post="/buckets/{{ $.BucketName }}/delete?key={{ .Key }}" hx-confirm="Delete {{ .DisplayName }}?" hx-target="closest tr" hx-swap="outerHTML swap:0.3s" class="p-2 text-zinc-400 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-colors" title="Delete">
+                                        <i data-lucide="trash-2" size="16"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {{ else }}
+                        {{ if not .Folders }}
+                        <tr>
+                            <td colspan="5" class="px-6 py-12 text-center text-zinc-500">
+                                <div class="flex flex-col items-center gap-2">
+                                    <i data-lucide="inbox" size="32" class="opacity-50"></i>
+                                    <p>{{ if $.Prefix }}This folder is empty{{ else }}This bucket is empty{{ end }}</p>
+                                    <p class="text-sm">Drag and drop files here or click Upload</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {{ end }}
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Stats -->
+            <div class="mt-4 text-sm text-zinc-500">
+                {{ len .Folders }} folder(s), {{ len .Objects }} file(s)
+            </div>
+        </div>
+    </main>
+
+    <!-- Preview Modal -->
+    <div x-show="previewOpen" x-cloak
+        class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-8"
+        @click.self="previewOpen = false"
+        @keydown.escape.window="previewOpen = false">
+        <div class="bg-surface border border-border rounded-xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-4 border-b border-border">
+                <h3 class="font-semibold text-white truncate" x-text="previewName"></h3>
+                <div class="flex items-center gap-2">
+                    <a :href="'/buckets/{{ .BucketName }}/download?key=' + previewKey"
+                        class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-md transition-colors" title="Download">
+                        <i data-lucide="download" size="18"></i>
+                    </a>
+                    <button @click="previewOpen = false"
+                        class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-md transition-colors">
+                        <i data-lucide="x" size="18"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- Modal Content -->
+            <div class="flex-1 overflow-auto p-4 flex items-center justify-center bg-zinc-900 min-h-[400px]">
+                <!-- Loading -->
+                <div x-show="previewLoading" class="text-zinc-500">
+                    <i data-lucide="loader-2" size="32" class="animate-spin"></i>
+                </div>
+                <!-- Image Preview -->
+                <template x-if="previewType === 'image' && !previewLoading">
+                    <img :src="'/buckets/{{ .BucketName }}/download?key=' + previewKey"
+                        @load="previewLoading = false"
+                        class="max-w-full max-h-full object-contain" />
+                </template>
+                <!-- Text Preview -->
+                <template x-if="previewType === 'text' && !previewLoading">
+                    <pre class="text-sm text-zinc-300 whitespace-pre-wrap w-full h-full overflow-auto p-4 bg-zinc-950 rounded-lg"
+                        x-text="previewContent"></pre>
+                </template>
+                <!-- Video Preview -->
+                <template x-if="previewType === 'video' && !previewLoading">
+                    <video controls class="max-w-full max-h-full" @loadeddata="previewLoading = false">
+                        <source :src="'/buckets/{{ .BucketName }}/download?key=' + previewKey" />
+                    </video>
+                </template>
+                <!-- Unsupported -->
+                <template x-if="previewType === 'unsupported'">
+                    <div class="text-center text-zinc-500">
+                        <i data-lucide="file-question" size="64" class="mx-auto mb-4 opacity-50"></i>
+                        <p>Preview not available for this file type</p>
+                        <a :href="'/buckets/{{ .BucketName }}/download?key=' + previewKey"
+                            class="inline-flex items-center gap-2 mt-4 text-accent hover:underline">
+                            <i data-lucide="download" size="16"></i>
+                            Download to view
+                        </a>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Progress Modal -->
+    <div x-show="uploadProgress.show" x-cloak
+        class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+        <div class="bg-surface border border-border rounded-xl p-6 w-full max-w-md">
+            <h3 class="font-semibold text-white mb-4">Uploading Files</h3>
+            <div class="space-y-3">
+                <template x-for="(file, index) in uploadProgress.files" :key="index">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="file" size="16" class="text-zinc-500"></i>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm text-white truncate" x-text="file.name"></p>
+                            <div class="w-full bg-zinc-800 rounded-full h-1.5 mt-1">
+                                <div class="bg-accent h-1.5 rounded-full transition-all"
+                                    :style="'width: ' + file.progress + '%'"></div>
+                            </div>
+                        </div>
+                        <span class="text-xs text-zinc-500" x-text="file.progress + '%'"></span>
+                    </div>
+                </template>
+            </div>
+            <p class="text-sm text-zinc-500 mt-4" x-text="uploadProgress.status"></p>
+        </div>
+    </div>
+
+    <!-- Styled Confirm Dialog -->
+    <dialog id="confirm-dialog" class="bg-transparent p-0 m-0 max-w-none w-full h-full backdrop:bg-black/60">
+        <div class="fixed inset-0 flex items-center justify-center p-4">
+            <div class="bg-surface border border-border rounded-xl p-6 w-full max-w-md shadow-2xl">
+                <div class="flex items-start gap-4">
+                    <!-- Icon -->
+                    <div class="flex-shrink-0 w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
+                        <i data-lucide="alert-triangle" size="20" class="text-red-400"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h3 id="confirm-dialog-title" class="text-lg font-semibold text-white mb-2">Confirm Action</h3>
+                        <p id="confirm-dialog-message" class="text-sm text-zinc-400"></p>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex gap-3 mt-6">
+                    <button
+                        type="button"
+                        id="confirm-dialog-cancel"
+                        class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        id="confirm-dialog-confirm"
+                        class="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
+                        Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </dialog>
+
+    <script>
+    (function() {
+        const dialog = document.getElementById('confirm-dialog');
+        const messageEl = document.getElementById('confirm-dialog-message');
+        const cancelBtn = document.getElementById('confirm-dialog-cancel');
+        const confirmBtn = document.getElementById('confirm-dialog-confirm');
+
+        let resolvePromise = null;
+
+        // Close dialog on cancel
+        cancelBtn.addEventListener('click', () => {
+            dialog.close();
+            if (resolvePromise) resolvePromise(false);
+        });
+
+        // Close dialog on confirm
+        confirmBtn.addEventListener('click', () => {
+            dialog.close();
+            if (resolvePromise) resolvePromise(true);
+        });
+
+        // Close on backdrop click
+        dialog.addEventListener('click', (e) => {
+            if (e.target === dialog) {
+                dialog.close();
+                if (resolvePromise) resolvePromise(false);
+            }
+        });
+
+        // Close on Escape key
+        dialog.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                dialog.close();
+                if (resolvePromise) resolvePromise(false);
+            }
+        });
+
+        // Override HTMX's confirm behavior - only for elements with hx-confirm
+        document.body.addEventListener('htmx:confirm', function(e) {
+            // Only intercept if there's actually a confirm question
+            if (!e.detail.question) {
+                return; // Let HTMX proceed normally
+            }
+
+            e.preventDefault();
+
+            const message = e.detail.question;
+            messageEl.textContent = message;
+
+            // Re-init icons in dialog
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+
+            dialog.showModal();
+
+            // Create a promise that resolves when user makes a choice
+            new Promise((resolve) => {
+                resolvePromise = resolve;
+            }).then((confirmed) => {
+                if (confirmed) {
+                    e.detail.issueRequest(true);
+                }
+            });
+        });
+    })();
+    </script>
+
+    <script>
+        function objectBrowser() {
+            return {
+                searchQuery: '',
+                isDragging: false,
+                selectedFiles: [],
+                allFiles: [],
+
+                // Preview state
+                previewOpen: false,
+                previewKey: '',
+                previewName: '',
+                previewType: '',
+                previewContent: '',
+                previewLoading: false,
+
+                // Upload progress
+                uploadProgress: {
+                    show: false,
+                    files: [],
+                    status: ''
+                },
+
+                init() {
+                    // Collect all file keys for select all functionality
+                    document.querySelectorAll('.file-row').forEach(row => {
+                        this.allFiles.push(row.dataset.key);
+                    });
+                    lucide.createIcons();
+                },
+
+                toggleSelect(key) {
+                    const index = this.selectedFiles.indexOf(key);
+                    if (index === -1) {
+                        this.selectedFiles.push(key);
+                    } else {
+                        this.selectedFiles.splice(index, 1);
+                    }
+                },
+
+                toggleSelectAll(event) {
+                    if (event.target.checked) {
+                        this.selectedFiles = [...this.allFiles];
+                    } else {
+                        this.selectedFiles = [];
+                    }
+                },
+
+                async openPreview(key, name, contentType) {
+                    this.previewKey = key;
+                    this.previewName = name;
+                    this.previewLoading = true;
+                    this.previewOpen = true;
+                    this.previewContent = '';
+
+                    // Determine preview type
+                    if (contentType.startsWith('image/')) {
+                        this.previewType = 'image';
+                        // Image loads via img tag
+                    } else if (contentType.startsWith('video/')) {
+                        this.previewType = 'video';
+                    } else if (contentType.startsWith('text/') ||
+                               contentType === 'application/json' ||
+                               contentType === 'application/xml' ||
+                               contentType === 'application/javascript') {
+                        this.previewType = 'text';
+                        // Fetch text content
+                        try {
+                            const response = await fetch('/buckets/{{ .BucketName }}/download?key=' + encodeURIComponent(key));
+                            this.previewContent = await response.text();
+                        } catch (e) {
+                            this.previewContent = 'Error loading file content';
+                        }
+                        this.previewLoading = false;
+                    } else {
+                        this.previewType = 'unsupported';
+                        this.previewLoading = false;
+                    }
+
+                    // Re-init icons for modal
+                    this.$nextTick(() => lucide.createIcons());
+                },
+
+                bulkDownload() {
+                    // Download each selected file
+                    this.selectedFiles.forEach(key => {
+                        const link = document.createElement('a');
+                        link.href = '/buckets/{{ .BucketName }}/download?key=' + encodeURIComponent(key);
+                        link.download = '';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    });
+                },
+
+                async bulkDelete() {
+                    const confirmed = await this.showConfirmDialog(`Delete ${this.selectedFiles.length} file(s)? This cannot be undone.`);
+                    if (!confirmed) {
+                        return;
+                    }
+
+                    for (const key of this.selectedFiles) {
+                        try {
+                            await fetch('/buckets/{{ .BucketName }}/delete?key=' + encodeURIComponent(key), {
+                                method: 'POST'
+                            });
+                        } catch (e) {
+                            console.error('Failed to delete:', key);
+                        }
+                    }
+
+                    // Reload page after deletion
+                    window.location.reload();
+                },
+
+                showConfirmDialog(message) {
+                    return new Promise((resolve) => {
+                        const dialog = document.getElementById('confirm-dialog');
+                        const messageEl = document.getElementById('confirm-dialog-message');
+                        const cancelBtn = document.getElementById('confirm-dialog-cancel');
+                        const confirmBtn = document.getElementById('confirm-dialog-confirm');
+
+                        messageEl.textContent = message;
+                        lucide.createIcons();
+
+                        const cleanup = () => {
+                            cancelBtn.removeEventListener('click', onCancel);
+                            confirmBtn.removeEventListener('click', onConfirm);
+                        };
+
+                        const onCancel = () => {
+                            dialog.close();
+                            cleanup();
+                            resolve(false);
+                        };
+
+                        const onConfirm = () => {
+                            dialog.close();
+                            cleanup();
+                            resolve(true);
+                        };
+
+                        cancelBtn.addEventListener('click', onCancel);
+                        confirmBtn.addEventListener('click', onConfirm);
+
+                        dialog.showModal();
+                    });
+                },
+
+                async handleFileDrop(event) {
+                    this.isDragging = false;
+                    const files = event.dataTransfer.files;
+                    if (files.length === 0) return;
+
+                    await this.uploadFiles(files);
+                },
+
+                async uploadFiles(files) {
+                    this.uploadProgress.show = true;
+                    this.uploadProgress.files = Array.from(files).map(f => ({
+                        name: f.name,
+                        progress: 0
+                    }));
+                    this.uploadProgress.status = 'Uploading...';
+
+                    const prefix = new URLSearchParams(window.location.search).get('prefix') || '';
+
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        const formData = new FormData();
+                        formData.append('file', file);
+
+                        try {
+                            const xhr = new XMLHttpRequest();
+                            xhr.open('POST', '/buckets/{{ .BucketName }}/upload' + (prefix ? '?prefix=' + prefix : ''));
+
+                            xhr.upload.onprogress = (e) => {
+                                if (e.lengthComputable) {
+                                    this.uploadProgress.files[i].progress = Math.round((e.loaded / e.total) * 100);
+                                }
+                            };
+
+                            await new Promise((resolve, reject) => {
+                                xhr.onload = () => resolve();
+                                xhr.onerror = () => reject();
+                                xhr.send(formData);
+                            });
+
+                            this.uploadProgress.files[i].progress = 100;
+                        } catch (e) {
+                            console.error('Upload failed:', file.name);
+                        }
+                    }
+
+                    this.uploadProgress.status = 'Complete! Refreshing...';
+                    setTimeout(() => window.location.reload(), 500);
+                }
+            };
+        }
+    </script>
+</body>
+</html>
+{{ end }}

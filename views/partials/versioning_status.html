@@ -1,0 +1,17 @@
+{{ define "versioning_status" }}
+<div class="flex items-center gap-2">
+    {{ if .Enabled }}
+    <span class="flex items-center gap-1.5 text-xs font-medium text-emerald-400">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Enabled
+    </span>
+    {{ else if .Suspended }}
+    <span class="flex items-center gap-1.5 text-xs font-medium text-yellow-400">
+        <span class="w-1.5 h-1.5 rounded-full bg-yellow-400"></span> Suspended
+    </span>
+    {{ else }}
+    <span class="flex items-center gap-1.5 text-xs font-medium text-zinc-500">
+        <span class="w-1.5 h-1.5 rounded-full bg-zinc-500"></span> Disabled
+    </span>
+    {{ end }}
+</div>
+{{ end }}

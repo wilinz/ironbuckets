@@ -1,0 +1,50 @@
+{{ define "bucket_quota" }}
+<div class="space-y-4">
+    {{ if .HasQuota }}
+    <div class="grid grid-cols-3 gap-4 text-sm">
+        {{ if gt .SizeBytes 0 }}
+        <div class="bg-zinc-800/50 rounded-lg p-3">
+            <div class="text-zinc-500 text-xs mb-1">Size Limit</div>
+            <div class="text-white font-medium">{{ .Size }}</div>
+        </div>
+        {{ end }}
+        {{ if gt .RateBytes 0 }}
+        <div class="bg-zinc-800/50 rounded-lg p-3">
+            <div class="text-zinc-500 text-xs mb-1">Bandwidth Rate</div>
+            <div class="text-white font-medium">{{ .Rate }}/s</div>
+        </div>
+        {{ end }}
+        {{ if gt .Requests 0 }}
+        <div class="bg-zinc-800/50 rounded-lg p-3">
+            <div class="text-zinc-500 text-xs mb-1">Request Limit</div>
+            <div class="text-white font-medium">{{ .Requests }}/s</div>
+        </div>
+        {{ end }}
+    </div>
+    {{ else }}
+    <div class="text-center py-4 text-zinc-500">
+        <p class="text-sm">No quota configured</p>
+    </div>
+    {{ end }}
+
+    <!-- Set Quota Form -->
+    <form hx-post="/buckets/{{ .BucketName }}/quota" class="space-y-3 pt-4 border-t border-zinc-700">
+        <div>
+            <label class="block text-xs text-zinc-500 mb-1">Storage Limit (GB)</label>
+            <input type="number" name="size" min="0" placeholder="0 = unlimited"
+                class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:border-accent focus:outline-none" />
+        </div>
+        <div class="flex gap-2">
+            <button type="submit" class="bg-accent hover:bg-accent/80 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
+                Set Quota
+            </button>
+            {{ if .HasQuota }}
+            <button type="button" hx-post="/buckets/{{ .BucketName }}/quota" hx-vals='{"size": "0"}'
+                class="bg-zinc-700 hover:bg-zinc-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
+                Remove Quota
+            </button>
+            {{ end }}
+        </div>
+    </form>
+</div>
+{{ end }}

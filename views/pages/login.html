@@ -1,0 +1,92 @@
+{{ define "base" }}
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - IronBuckets</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#09090b',
+                        surface: '#18181b',
+                        border: '#27272a',
+                        accent: '#2563eb',
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-background text-zinc-100 h-screen w-screen flex items-center justify-center">
+
+        <div class="w-full max-w-md p-8 space-y-8 bg-surface border border-border rounded-xl shadow-2xl">
+        <div class="flex flex-col items-center gap-2">
+            <div class="w-12 h-12 bg-zinc-100 rounded-xl flex items-center justify-center">
+                <i data-lucide="box" class="text-black w-6 h-6"></i>
+            </div>
+            <h2 class="mt-4 text-2xl font-bold tracking-tight text-white">Sign in to IronBuckets</h2>
+            <p class="text-sm text-zinc-500">Enter your MinIO cluster credentials</p>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex border-b border-zinc-800" _="on click take .text-white from .text-zinc-400 for target then add .text-white to target">
+            <button class="flex-1 pb-2 text-sm font-medium text-white border-b-2 border-white" onclick="document.getElementById('form-creds').classList.remove('hidden'); document.getElementById('form-sso').classList.add('hidden'); this.classList.add('border-white', 'text-white'); this.nextElementSibling.classList.remove('border-white', 'text-white'); this.nextElementSibling.classList.add('text-zinc-400', 'border-transparent');">Credentials</button>
+            <button class="flex-1 pb-2 text-sm font-medium text-zinc-400 border-b-2 border-transparent hover:text-zinc-300" onclick="document.getElementById('form-sso').classList.remove('hidden'); document.getElementById('form-creds').classList.add('hidden'); this.classList.add('border-white', 'text-white'); this.classList.remove('text-zinc-400', 'border-transparent'); this.previousElementSibling.classList.remove('border-white', 'text-white'); this.previousElementSibling.classList.add('text-zinc-400', 'border-transparent');">SSO</button>
+        </div>
+
+        <form id="form-creds" class="mt-8 space-y-6" hx-post="/login" hx-swap="outerHTML">
+            <div class="space-y-4 rounded-md shadow-sm">
+                <div>
+                    <label for="accessKey" class="block text-sm font-medium text-zinc-400 mb-1">Access Key / Username</label>
+                    <input id="accessKey" name="accessKey" type="text" required class="relative block w-full rounded-md border border-zinc-700 bg-zinc-900/50 px-3 py-2 text-zinc-100 placeholder-zinc-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent sm:text-sm">
+                </div>
+                <div>
+                    <label for="secretKey" class="block text-sm font-medium text-zinc-400 mb-1">Secret Key / Password</label>
+                    <input id="secretKey" name="secretKey" type="password" required class="relative block w-full rounded-md border border-zinc-700 bg-zinc-900/50 px-3 py-2 text-zinc-100 placeholder-zinc-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent sm:text-sm">
+                </div>
+            </div>
+
+            <div id="error-message" class="text-red-500 text-sm text-center hidden">
+                <!-- Errors will appear here -->
+            </div>
+
+            <div>
+                <button type="submit" class="group relative flex w-full justify-center rounded-md border border-transparent bg-white px-4 py-2 text-sm font-medium text-black hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-zinc-900">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                        <i data-lucide="lock" class="h-4 w-4 text-zinc-400 group-hover:text-zinc-500"></i>
+                    </span>
+                    Sign in
+                </button>
+            </div>
+        </form>
+
+        <div id="form-sso" class="mt-8 space-y-6 hidden">
+             <div class="space-y-4">
+                <p class="text-sm text-zinc-400 text-center">Sign in with your Identity Provider</p>
+
+                <a href="/login/oauth" class="group relative flex w-full justify-center rounded-md border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-zinc-900">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                        <i data-lucide="shield" class="h-4 w-4 text-zinc-400"></i>
+                    </span>
+                    Sign in with SSO (OIDC)
+                </a>
+             </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
+{{ end }}

@@ -1,0 +1,32 @@
+{{ define "drives_widget" }}
+<div class="bg-surface border border-border rounded-xl p-5">
+    <div class="flex justify-between items-start mb-4">
+        <div class="p-2 bg-zinc-800/50 rounded-lg text-zinc-400"><i data-lucide="hard-drive"></i></div>
+        {{ if eq .Status "healthy" }}
+        <span class="text-xs text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded">Healthy</span>
+        {{ else if eq .Status "degraded" }}
+        <span class="text-xs text-yellow-500 bg-yellow-500/10 px-2 py-1 rounded">Degraded</span>
+        {{ else if eq .Status "offline" }}
+        <span class="text-xs text-red-500 bg-red-500/10 px-2 py-1 rounded">Offline</span>
+        {{ else }}
+        <span class="text-xs text-zinc-500 bg-zinc-800 px-2 py-1 rounded">Unknown</span>
+        {{ end }}
+    </div>
+    <div class="text-2xl font-bold text-white mb-1">{{ .OnlineCount }} / {{ .TotalCount }}</div>
+    <div class="text-sm text-zinc-500 font-medium">Online Drives</div>
+    <!-- Visual representation of drives -->
+    {{ if .Disks }}
+    <div class="flex gap-1 mt-3 flex-wrap">
+        {{ range .Disks }}
+        {{ range .Disks }}
+        {{ if eq .State "ok" }}
+        <div class="h-1.5 flex-1 min-w-[20px] rounded-full bg-emerald-500" title="{{ .DrivePath }} - Online"></div>
+        {{ else }}
+        <div class="h-1.5 flex-1 min-w-[20px] rounded-full bg-red-500" title="{{ .DrivePath }} - {{ .State }}"></div>
+        {{ end }}
+        {{ end }}
+        {{ end }}
+    </div>
+    {{ end }}
+</div>
+{{ end }}

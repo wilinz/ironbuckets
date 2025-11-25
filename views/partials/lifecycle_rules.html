@@ -1,0 +1,42 @@
+{{ define "lifecycle_rules" }}
+<div class="space-y-4">
+    {{ if .HasRules }}
+    <div class="space-y-2">
+        {{ range .Rules }}
+        <div class="flex items-center justify-between p-3 bg-zinc-800/50 rounded-lg">
+            <div class="flex items-center gap-3">
+                <div class="p-1.5 bg-zinc-700 rounded">
+                    <i data-lucide="clock" size="14" class="text-zinc-400"></i>
+                </div>
+                <div>
+                    <div class="text-sm font-medium text-white">{{ .ID }}</div>
+                    <div class="text-xs text-zinc-500">
+                        {{ if .Prefix }}Prefix: {{ .Prefix }} - {{ end }}{{ .Action }}
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                {{ if eq .Status "Enabled" }}
+                <span class="text-xs bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded">Active</span>
+                {{ else }}
+                <span class="text-xs bg-zinc-500/10 text-zinc-400 px-2 py-0.5 rounded">Disabled</span>
+                {{ end }}
+                <button
+                    hx-post="/buckets/{{ $.BucketName }}/lifecycle/delete"
+                    hx-vals='{"ruleId": "{{ .ID }}"}'
+                    hx-confirm="Delete lifecycle rule '{{ .ID }}'?"
+                    class="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-400/10 rounded transition-colors">
+                    <i data-lucide="trash-2" size="14"></i>
+                </button>
+            </div>
+        </div>
+        {{ end }}
+    </div>
+    {{ else }}
+    <div class="text-center py-6 text-zinc-500">
+        <i data-lucide="clock" size="24" class="mx-auto mb-2 opacity-50"></i>
+        <p class="text-sm">No lifecycle rules configured</p>
+    </div>
+    {{ end }}
+</div>
+{{ end }}

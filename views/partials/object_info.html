@@ -1,0 +1,120 @@
+{{ define "object_info" }}
+<dialog id="object-info-dialog" class="bg-transparent p-0 m-0 max-w-none w-full h-full backdrop:bg-black/60" open>
+    <div class="fixed inset-0 flex items-center justify-center p-4">
+        <div class="bg-surface border border-border rounded-xl p-6 w-full max-w-lg shadow-2xl max-h-[80vh] overflow-y-auto">
+            <div class="flex items-start justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-zinc-800/50 rounded-lg text-zinc-400">
+                        <i data-lucide="file-text" size="20"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-white truncate max-w-[300px]" title="{{ .ObjectKey }}">{{ .ObjectKey }}</h3>
+                        <p class="text-sm text-zinc-500">Object Details</p>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('object-info-dialog').close(); document.getElementById('object-info-dialog').remove();" class="text-zinc-500 hover:text-white">
+                    <i data-lucide="x" size="20"></i>
+                </button>
+            </div>
+
+            <!-- Basic Info -->
+            <div class="space-y-3 mb-6">
+                <div class="flex justify-between text-sm">
+                    <span class="text-zinc-500">Size</span>
+                    <span class="text-white">{{ .Size }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-zinc-500">Content Type</span>
+                    <span class="text-white">{{ .ContentType }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-zinc-500">ETag</span>
+                    <span class="text-white font-mono text-xs">{{ .ETag }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-zinc-500">Last Modified</span>
+                    <span class="text-white">{{ .LastModified }}</span>
+                </div>
+            </div>
+
+            <!-- Metadata -->
+            <div class="mb-6">
+                <h4 class="text-sm font-medium text-white mb-2 flex items-center gap-2">
+                    <i data-lucide="info" size="14"></i> Metadata
+                </h4>
+                {{ if .HasMetadata }}
+                <div class="space-y-1">
+                    {{ range .Metadata }}
+                    <div class="flex justify-between text-sm bg-zinc-800/50 rounded px-3 py-2">
+                        <span class="text-zinc-400">{{ .Key }}</span>
+                        <span class="text-white">{{ .Value }}</span>
+                    </div>
+                    {{ end }}
+                </div>
+                {{ else }}
+                <p class="text-sm text-zinc-500">No custom metadata</p>
+                {{ end }}
+            </div>
+
+            <!-- Tags -->
+            <div class="mb-6">
+                <h4 class="text-sm font-medium text-white mb-2 flex items-center gap-2">
+                    <i data-lucide="tag" size="14"></i> Tags
+                </h4>
+                {{ if .HasTags }}
+                <div class="flex flex-wrap gap-2 mb-3">
+                    {{ range .Tags }}
+                    <span class="inline-flex items-center gap-1 px-2 py-1 bg-accent/10 text-accent text-xs rounded">
+                        {{ .Key }}={{ .Value }}
+                    </span>
+                    {{ end }}
+                </div>
+                {{ else }}
+                <p class="text-sm text-zinc-500 mb-3">No tags</p>
+                {{ end }}
+
+                <!-- Edit Tags Form -->
+                <form hx-post="/buckets/{{ .BucketName }}/object/tags" class="space-y-2">
+                    <input type="hidden" name="key" value="{{ .ObjectKey }}" />
+                    <div>
+                        <label class="block text-xs text-zinc-500 mb-1">Set Tags (key=value, comma separated)</label>
+                        <input type="text" name="tags" placeholder="env=prod, team=backend"
+                            value="{{ range $i, $t := .Tags }}{{ if $i }}, {{ end }}{{ $t.Key }}={{ $t.Value }}{{ end }}"
+                            class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:border-accent focus:outline-none" />
+                    </div>
+                    <button type="submit" class="bg-accent hover:bg-accent/80 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
+                        Update Tags
+                    </button>
+                </form>
+            </div>
+
+            <div class="flex justify-end">
+                <button onclick="document.getElementById('object-info-dialog').close(); document.getElementById('object-info-dialog').remove();"
+                    class="bg-zinc-700 hover:bg-zinc-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</dialog>
+<script>
+    lucide.createIcons();
+    (function() {
+        const dialog = document.getElementById('object-info-dialog');
+        // Close on backdrop click
+        dialog.addEventListener('click', (e) => {
+            if (e.target === dialog) {
+                dialog.close();
+                dialog.remove();
+            }
+        });
+        // Close on Escape key
+        dialog.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                dialog.close();
+                dialog.remove();
+            }
+        });
+    })();
+</script>
+{{ end }}

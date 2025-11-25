@@ -1,0 +1,107 @@
+{{ define "content" }}
+<div class="space-y-4">
+    <div class="flex justify-between items-center">
+        <h2 class="text-xl font-bold text-white">Groups</h2>
+        <!-- HTMX Trigger Button -->
+        <button
+            hx-get="/groups/create"
+            hx-target="#modal"
+            class="bg-white text-black px-4 py-2 rounded-md text-sm font-semibold hover:bg-zinc-200 flex items-center gap-2">
+            <i data-lucide="plus" size="16"></i> Add Group
+        </button>
+    </div>
+
+    <div class="bg-surface border border-border rounded-xl overflow-visible">
+        <table class="w-full text-sm text-left">
+            <thead class="bg-zinc-800/50 text-zinc-400 font-medium border-b border-border">
+                <tr>
+                    <th class="px-6 py-3">Group Name</th>
+                    <th class="px-6 py-3">Members</th>
+                    <th class="px-6 py-3">Policy</th>
+                    <th class="px-6 py-3">Status</th>
+                    <th class="px-6 py-3 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+                {{ if .Groups }}
+                {{ range .Groups }}
+                <tr class="hover:bg-white/5 transition-colors group">
+                    <td class="px-6 py-4 font-medium text-white">
+                        <a href="/groups/{{ .Name }}" class="flex items-center gap-2 hover:text-blue-400 transition-colors">
+                            <div class="w-8 h-8 rounded bg-zinc-800 flex items-center justify-center text-zinc-400">
+                                <i data-lucide="users" size="14"></i>
+                            </div>
+                            {{ .Name }}
+                        </a>
+                    </td>
+                    <td class="px-6 py-4 text-zinc-400">
+                        <span class="px-2 py-1 rounded bg-zinc-500/10 text-zinc-300 text-xs border border-zinc-500/20 font-medium">
+                            {{ .MemberCount }} member{{ if ne .MemberCount 1 }}s{{ end }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        {{ if .Policy }}
+                        <span class="px-2 py-1 rounded bg-blue-500/10 text-blue-400 text-xs border border-blue-500/20 font-medium">{{ .Policy }}</span>
+                        {{ else }}
+                        <span class="px-2 py-1 rounded bg-zinc-500/10 text-zinc-400 text-xs border border-zinc-500/20 font-medium">none</span>
+                        {{ end }}
+                    </td>
+                    <td class="px-6 py-4">
+                        {{ if eq .Status "enabled" }}
+                        <span class="flex items-center gap-1.5 text-xs font-medium text-emerald-400">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Enabled
+                        </span>
+                        {{ else }}
+                        <span class="flex items-center gap-1.5 text-xs font-medium text-zinc-400">
+                            <span class="w-1.5 h-1.5 rounded-full bg-zinc-400"></span> Disabled
+                        </span>
+                        {{ end }}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <div class="relative inline-block" x-data="{ open: false }">
+                            <button @click="open = !open" class="p-1 hover:text-white text-zinc-500">
+                                <i data-lucide="more-horizontal" size="16"></i>
+                            </button>
+                            <div x-show="open" @click.away="open = false" x-cloak
+                                 class="absolute right-0 mt-2 w-48 bg-surface border border-border rounded-lg shadow-lg z-50">
+                                <a href="/groups/{{ .Name }}" class="block px-4 py-2 text-sm text-zinc-300 hover:bg-white/5 flex items-center gap-2">
+                                    <i data-lucide="eye" size="14"></i> View Details
+                                </a>
+                                <div class="border-t border-border"></div>
+                                {{ if eq .Status "enabled" }}
+                                <form hx-post="/groups/{{ .Name }}/disable" hx-confirm="Disable group {{ .Name }}?">
+                                    <button type="submit" class="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-white/5 flex items-center gap-2">
+                                        <i data-lucide="pause-circle" size="14"></i> Disable
+                                    </button>
+                                </form>
+                                {{ else }}
+                                <form hx-post="/groups/{{ .Name }}/enable" hx-confirm="Enable group {{ .Name }}?">
+                                    <button type="submit" class="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-white/5 flex items-center gap-2">
+                                        <i data-lucide="play-circle" size="14"></i> Enable
+                                    </button>
+                                </form>
+                                {{ end }}
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {{ end }}
+                {{ else }}
+                <tr>
+                    <td colspan="5" class="px-6 py-12 text-center text-zinc-500">
+                        <div class="flex flex-col items-center gap-2">
+                            <i data-lucide="users" size="32" class="text-zinc-600"></i>
+                            <p>No groups found</p>
+                            <p class="text-xs">Create a group to organize users and manage permissions</p>
+                        </div>
+                    </td>
+                </tr>
+                {{ end }}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Placeholder -->
+<div id="modal"></div>
+{{ end }}

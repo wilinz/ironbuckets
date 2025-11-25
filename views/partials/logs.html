@@ -1,0 +1,19 @@
+{{ define "logs" }}
+<div class="space-y-2 max-h-96 overflow-y-auto font-mono text-xs">
+    {{ if .HasLogs }}
+    {{ range .Logs }}
+    <div class="flex gap-2 p-2 bg-zinc-900 rounded border border-zinc-800">
+        {{ if .Node }}
+        <span class="text-accent shrink-0">[{{ .Node }}]</span>
+        {{ end }}
+        <span class="text-zinc-300 break-all">{{ .Message }}</span>
+    </div>
+    {{ end }}
+    {{ else }}
+    <div class="text-center py-8 text-zinc-500">
+        <i data-lucide="file-text" size="24" class="mx-auto mb-2 opacity-50"></i>
+        <p class="text-sm">No recent logs available</p>
+    </div>
+    {{ end }}
+</div>
+{{ end }}

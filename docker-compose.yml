@@ -1,0 +1,100 @@
+x-minio-common: &minio-common
+  build:
+    context: ./docker/minio
+    dockerfile: Dockerfile
+    args:
+      MINIO_VERSION: RELEASE.2025-10-15T17-29-55Z
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+  command: server --console-address ":9001" http://minio{1...4}/data
+  healthcheck:
+    test: ["CMD", "mc", "ready", "local"]
+    interval: 5s
+    timeout: 3s
+    retries: 3
+    start_period: 10s
+  networks:
+    - ironbuckets
+
+services:
+  minio1:
+    <<: *minio-common
+    container_name: ironbuckets-minio1
+    hostname: minio1
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio1_data:/data
+
+  minio2:
+    <<: *minio-common
+    container_name: ironbuckets-minio2
+    hostname: minio2
+    ports:
+      - "9002:9000"
+      - "9003:9001"
+    volumes:
+      - minio2_data:/data
+
+  minio3:
+    <<: *minio-common
+    container_name: ironbuckets-minio3
+    hostname: minio3
+    ports:
+      - "9004:9000"
+      - "9005:9001"
+    volumes:
+      - minio3_data:/data
+
+  minio4:
+    <<: *minio-common
+    container_name: ironbuckets-minio4
+    hostname: minio4
+    ports:
+      - "9006:9000"
+      - "9007:9001"
+    volumes:
+      - minio4_data:/data
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ironbuckets-app
+    ports:
+      - "8080:8080"
+    environment:
+      # App connects to MinIO via container network (any node works)
+      - MINIO_ENDPOINT=minio1:9000
+    depends_on:
+      minio1:
+        condition: service_healthy
+      minio2:
+        condition: service_healthy
+      minio3:
+        condition: service_healthy
+      minio4:
+        condition: service_healthy
+    networks:
+      - ironbuckets
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "-O", "/dev/null", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+networks:
+  ironbuckets:
+    driver: bridge
+
+volumes:
+  minio1_data:
+    driver: local
+  minio2_data:
+    driver: local
+  minio3_data:
+    driver: local
+  minio4_data:
+    driver: local

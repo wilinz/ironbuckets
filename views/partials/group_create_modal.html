@@ -1,0 +1,69 @@
+{{ define "group_create_modal" }}
+<div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+     x-data="{ selectedMembers: [] }"
+     @click.self="$el.remove()">
+    <div class="bg-surface border border-border rounded-xl w-full max-w-md shadow-2xl">
+        <div class="flex items-center justify-between p-6 border-b border-border">
+            <h3 class="text-lg font-semibold text-white">Create Group</h3>
+            <button @click="$el.closest('.fixed').remove()" class="text-zinc-400 hover:text-white">
+                <i data-lucide="x" size="20"></i>
+            </button>
+        </div>
+
+        <form hx-post="/groups/create" class="p-6 space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-zinc-300 mb-2">Group Name</label>
+                <input type="text" name="groupName" required
+                       class="w-full px-4 py-2 bg-zinc-800 border border-border rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="e.g., developers">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-zinc-300 mb-2">Members (optional)</label>
+                <div class="space-y-2">
+                    {{ if .Users }}
+                    <div class="max-h-40 overflow-y-auto bg-zinc-800 border border-border rounded-lg p-2 space-y-1">
+                        {{ range .Users }}
+                        <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white/5 cursor-pointer">
+                            <input type="checkbox"
+                                   value="{{ . }}"
+                                   @change="if($event.target.checked) { selectedMembers.push('{{ . }}') } else { selectedMembers = selectedMembers.filter(m => m !== '{{ . }}') }"
+                                   class="rounded border-zinc-600 bg-zinc-700 text-blue-500 focus:ring-blue-500">
+                            <span class="text-sm text-zinc-300">{{ . }}</span>
+                        </label>
+                        {{ end }}
+                    </div>
+                    <input type="hidden" name="members" :value="selectedMembers.join(',')">
+                    {{ else }}
+                    <p class="text-sm text-zinc-500 italic">No users available</p>
+                    {{ end }}
+                </div>
+                <p class="text-xs text-zinc-500 mt-1">Leave empty to create an empty group</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-zinc-300 mb-2">Policy (optional)</label>
+                <select name="policy"
+                        class="w-full px-4 py-2 bg-zinc-800 border border-border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">No policy</option>
+                    {{ range .Policies }}
+                    <option value="{{ . }}">{{ . }}</option>
+                    {{ end }}
+                </select>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4">
+                <button type="button" @click="$el.closest('.fixed').remove()"
+                        class="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="px-4 py-2 bg-white text-black rounded-lg text-sm font-semibold hover:bg-zinc-200">
+                    Create Group
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>lucide.createIcons();</script>
+{{ end }}

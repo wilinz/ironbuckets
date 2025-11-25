@@ -1,0 +1,84 @@
+{{ define "share_link" }}
+<dialog id="share-dialog" class="bg-transparent p-0 m-0 max-w-none w-full h-full backdrop:bg-black/60" open>
+    <div class="fixed inset-0 flex items-center justify-center p-4">
+        <div class="bg-surface border border-border rounded-xl p-6 w-full max-w-lg shadow-2xl">
+            <div class="flex items-start gap-4 mb-6">
+                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                    <i data-lucide="link" size="20" class="text-accent"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-white">Share Link Generated</h3>
+                    <p class="text-sm text-zinc-400 mt-1">Anyone with this link can download the file</p>
+                </div>
+            </div>
+
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label class="block text-xs text-zinc-500 mb-1">Shareable URL</label>
+                    <div class="flex items-center gap-2">
+                        <input type="text" readonly value="{{ .URL }}" id="share-url"
+                            class="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm font-mono text-white truncate" />
+                        <button onclick="copyShareUrl()"
+                            class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-md transition-colors" title="Copy">
+                            <i data-lucide="copy" size="16"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <span class="text-zinc-500">File</span>
+                        <p class="text-white truncate">{{ .ObjectKey }}</p>
+                    </div>
+                    <div>
+                        <span class="text-zinc-500">Expires</span>
+                        <p class="text-white">{{ .ExpiresDisplay }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-zinc-800/50 border border-zinc-700/50 rounded-lg p-3 mb-6">
+                <div class="flex items-start gap-2">
+                    <i data-lucide="clock" size="16" class="text-zinc-500 mt-0.5"></i>
+                    <p class="text-sm text-zinc-400">This link will expire on <span class="text-white">{{ .ExpiresAt }}</span></p>
+                </div>
+            </div>
+
+            <div class="flex justify-end">
+                <button onclick="document.getElementById('share-dialog').close(); document.getElementById('share-dialog').remove();"
+                    class="bg-white hover:bg-zinc-200 text-black px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+</dialog>
+<script>
+    lucide.createIcons();
+
+    function copyShareUrl() {
+        const url = document.getElementById('share-url').value;
+        navigator.clipboard.writeText(url).then(() => {
+            // Optional: show a toast notification
+        });
+    }
+
+    (function() {
+        const dialog = document.getElementById('share-dialog');
+        // Close on backdrop click
+        dialog.addEventListener('click', (e) => {
+            if (e.target === dialog) {
+                dialog.close();
+                dialog.remove();
+            }
+        });
+        // Close on Escape key
+        dialog.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                dialog.close();
+                dialog.remove();
+            }
+        });
+    })();
+</script>
+{{ end }}

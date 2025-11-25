@@ -1,0 +1,77 @@
+version: '3'
+
+tasks:
+  # Docker Compose tasks
+  docker:up:
+    desc: Start Docker Compose test environment
+    cmds:
+      - docker compose -f docker-compose.yml up -d --build
+
+  docker:down:
+    desc: Stop and clean up Docker Compose environment
+    cmds:
+      - docker compose -f docker-compose.yml down -v
+
+  docker:logs:
+    desc: View Docker Compose logs
+    cmds:
+      - docker compose -f docker-compose.yml logs -f
+
+  docker:ps:
+    desc: Show running Docker Compose services
+    cmds:
+      - docker compose -f docker-compose.yml ps
+
+  # Test tasks
+  test:e2e:
+    desc: Run E2E tests (starts Docker, runs tests, cleans up)
+    cmds:
+      - task: docker:up
+      - defer: task docker:down
+      - npx playwright test
+
+  test:e2e:watch:
+    desc: Run E2E tests in UI mode (requires Docker to be running)
+    cmds:
+      - npx playwright test --ui
+
+  test:e2e:headed:
+    desc: Run E2E tests in headed mode (requires Docker to be running)
+    cmds:
+      - npx playwright test --headed
+
+  test:e2e:debug:
+    desc: Run E2E tests in debug mode (requires Docker to be running)
+    cmds:
+      - npx playwright test --debug
+
+  test:e2e:chromium:
+    desc: Run E2E tests on Chromium only (requires Docker to be running)
+    cmds:
+      - npx playwright test --project=chromium
+
+  # Setup tasks
+  setup:
+    desc: Install all dependencies
+    cmds:
+      - go mod download
+      - npm install
+      - npx playwright install --with-deps
+
+  # Development tasks
+  dev:
+    desc: Start development server (local, not Docker)
+    cmds:
+      - go run cmd/server/main.go
+
+  build:
+    desc: Build the application binary
+    cmds:
+      - go build -o server cmd/server/main.go
+
+  # Cleanup tasks
+  clean:
+    desc: Clean up all artifacts
+    cmds:
+      - rm -rf test-results playwright-report node_modules
+      - task: docker:down

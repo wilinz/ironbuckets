@@ -1,0 +1,24 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "github>damacus/renovate-config",
+    "github>damacus/renovate-config:autoMergeGitHubActions",
+    "github>damacus/renovate-config:autoMergeDocker"
+  ],
+  "packageRules": [
+    {
+      "description": "Auto-merge Go minor and patch updates",
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "Auto-merge npm minor and patch updates",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "automergeType": "pr"
+    }
+  ]
+}
