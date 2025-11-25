@@ -203,15 +203,19 @@ func shouldUseSSL(endpoint string) bool {
 	if endpoint == "localhost:9000" || endpoint == "127.0.0.1:9000" {
 		return false
 	}
-	// Docker service names (minio, minio1, minio2, etc.)
-	if strings.HasPrefix(endpoint, "minio") && strings.Contains(endpoint, ":9000") {
+	// Docker service names (minio:9000, minio1:9000, minio2:9000, etc.)
+	// Only match simple hostnames without dots (not domain names like minio.example.com)
+	if strings.HasPrefix(endpoint, "minio") && !strings.Contains(strings.Split(endpoint, ":")[0], ".") && strings.Contains(endpoint, ":9000") {
 		return false
 	}
 	return true
 }
 
 func (f *RealMinioFactory) NewAdminClient(creds Credentials) (MinioAdminClient, error) {
-	return madmin.New(creds.Endpoint, creds.AccessKey, creds.SecretKey, shouldUseSSL(creds.Endpoint))
+	return madmin.NewWithOptions(creds.Endpoint, &madmin.Options{
+		Creds:  credentials.NewStaticV4(creds.AccessKey, creds.SecretKey, ""),
+		Secure: shouldUseSSL(creds.Endpoint),
+	})
 }
 
 func (f *RealMinioFactory) NewClient(creds Credentials) (MinioClient, error) {
