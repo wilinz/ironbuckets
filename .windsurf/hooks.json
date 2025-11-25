@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "post_write_code": [
+      {
+        "command": "golangci-lint run ./...",
+        "show_output": true
+      }
+    ]
+  }
+}

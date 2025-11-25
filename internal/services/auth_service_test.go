@@ -7,7 +7,7 @@ import (
 
 func TestNewAuthService_GeneratesKey(t *testing.T) {
 	// Ensure no env key is set
-	os.Unsetenv("IRON_SESSION_KEY")
+	_ = os.Unsetenv("IRON_SESSION_KEY")
 
 	svc := NewAuthService()
 
@@ -21,8 +21,8 @@ func TestNewAuthService_GeneratesKey(t *testing.T) {
 
 func TestNewAuthService_UsesEnvKey(t *testing.T) {
 	testKey := "12345678901234567890123456789012" // 32 bytes
-	os.Setenv("IRON_SESSION_KEY", testKey)
-	defer os.Unsetenv("IRON_SESSION_KEY")
+	_ = os.Setenv("IRON_SESSION_KEY", testKey)
+	defer func() { _ = os.Unsetenv("IRON_SESSION_KEY") }()
 
 	svc := NewAuthService()
 
@@ -35,8 +35,8 @@ func TestNewAuthService_UsesEnvKey(t *testing.T) {
 }
 
 func TestNewAuthService_IgnoresShortEnvKey(t *testing.T) {
-	os.Setenv("IRON_SESSION_KEY", "tooshort")
-	defer os.Unsetenv("IRON_SESSION_KEY")
+	_ = os.Setenv("IRON_SESSION_KEY", "tooshort")
+	defer func() { _ = os.Unsetenv("IRON_SESSION_KEY") }()
 
 	svc := NewAuthService()
 

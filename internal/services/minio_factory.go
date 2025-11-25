@@ -139,7 +139,7 @@ func (c *WrappedMinioClient) GetObjectReader(ctx context.Context, bucketName, ob
 	}
 	info, err := obj.Stat()
 	if err != nil {
-		obj.Close()
+		_ = obj.Close()
 		return nil, 0, err
 	}
 	return obj, info.Size, nil

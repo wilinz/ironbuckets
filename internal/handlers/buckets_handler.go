@@ -236,7 +236,7 @@ func (h *BucketsHandler) UploadObject(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	defer src.Close()
+	defer func() { _ = src.Close() }()
 
 	client, err := h.minioFactory.NewClient(*creds)
 	if err != nil {
@@ -450,7 +450,7 @@ func (h *BucketsHandler) DownloadZip(c echo.Context) error {
 
 	// Create ZIP writer
 	zipWriter := zip.NewWriter(c.Response().Writer)
-	defer zipWriter.Close()
+	defer func() { _ = zipWriter.Close() }()
 
 	// Add each file to the ZIP
 	for _, obj := range files {
@@ -465,13 +465,13 @@ func (h *BucketsHandler) DownloadZip(c echo.Context) error {
 		relativePath := strings.TrimPrefix(obj.Key, prefix)
 		writer, err := zipWriter.Create(relativePath)
 		if err != nil {
-			reader.Close()
+			_ = reader.Close()
 			continue
 		}
 
 		// Copy content
 		_, err = io.Copy(writer, reader)
-		reader.Close()
+		_ = reader.Close()
 		if err != nil {
 			continue
 		}
