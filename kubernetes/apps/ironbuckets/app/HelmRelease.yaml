@@ -1,0 +1,201 @@
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: ironbuckets
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: app-template
+      version: 4.4.0
+      sourceRef:
+        kind: HelmRepository
+        name: bjw-s
+        namespace: flux-system
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+      strategy: uninstall
+  uninstall:
+    keepHistory: false
+  values:
+    controllers:
+      ironbuckets:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        containers:
+          app:
+            image:
+              repository: ghcr.io/damacus/ironbuckets
+              tag: latest # Replace with specific version
+            env:
+              MINIO_ENDPOINT: minio.${SECRET_DOMAIN}:443
+              MINIO_USE_SSL: "true"
+              # Credentials should be provided via secrets
+              MINIO_ACCESS_KEY:
+                valueFrom:
+                  secretKeyRef:
+                    name: ironbuckets-secret
+                    key: MINIO_ACCESS_KEY
+              MINIO_SECRET_KEY:
+                valueFrom:
+                  secretKeyRef:
+                    name: ironbuckets-secret
+                    key: MINIO_SECRET_KEY
+            probes:
+              liveness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /health
+                    port: 8080
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+              readiness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /health
+                    port: 8080
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+            resources:
+              requests:
+                cpu: 10m
+                memory: 64Mi
+              limits:
+                memory: 256Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: { drop: ["ALL"] }
+
+          minio:
+            image:
+              repository: ghcr.io/damacus/minio-community
+              tag: latest # Replace with specific version
+            args:
+              - server
+              - /data
+              - --console-address
+              - ":9001"
+            env:
+              MINIO_ROOT_USER:
+                valueFrom:
+                  secretKeyRef:
+                    name: ironbuckets-secret
+                    key: MINIO_ACCESS_KEY
+              MINIO_ROOT_PASSWORD:
+                valueFrom:
+                  secretKeyRef:
+                    name: ironbuckets-secret
+                    key: MINIO_SECRET_KEY
+            probes:
+              liveness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /minio/health/live
+                    port: 9000
+                  initialDelaySeconds: 10
+                  periodSeconds: 30
+              readiness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /minio/health/ready
+                    port: 9000
+                  initialDelaySeconds: 10
+                  periodSeconds: 30
+            resources:
+              requests:
+                cpu: 50m
+                memory: 256Mi
+              limits:
+                memory: 1Gi
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false # MinIO needs to write to /data
+              capabilities: { drop: ["ALL"] }
+
+        pod:
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            fsGroupChangePolicy: Always
+            seccompProfile: { type: RuntimeDefault }
+
+    service:
+      app:
+        controller: ironbuckets
+        ports:
+          http:
+            port: 8080
+      minio-api:
+        controller: ironbuckets
+        ports:
+          s3:
+            port: 9000
+      minio-console:
+        controller: ironbuckets
+        ports:
+          console:
+            port: 9001
+
+    route:
+      app:
+        hostnames: ["ironbuckets.${SECRET_DOMAIN}"]
+        parentRefs:
+          - name: internal
+            namespace: kube-system
+            sectionName: https
+      minio:
+        hostnames: ["minio.${SECRET_DOMAIN}", "s3.${SECRET_DOMAIN}"]
+        parentRefs:
+          - name: internal
+            namespace: kube-system
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: minio-api
+                port: 9000
+      minio-console:
+        hostnames: ["minio-console.${SECRET_DOMAIN}"]
+        parentRefs:
+          - name: internal
+            namespace: kube-system
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: minio-console
+                port: 9001
+
+    persistence:
+      data:
+        enabled: true
+        type: persistentVolumeClaim
+        accessMode: ReadWriteOnce
+        size: 10Gi
+        advancedMounts:
+          ironbuckets:
+            minio:
+              - path: /data
+      # Temp directory for ironbuckets app (read-only root filesystem)
+      tmp:
+        enabled: true
+        type: emptyDir
+        advancedMounts:
+          ironbuckets:
+            app:
+              - path: /tmp
