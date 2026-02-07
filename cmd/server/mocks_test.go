@@ -243,6 +243,16 @@ func (m *MockMinioClient) GetBucketReplication(ctx context.Context, bucketName s
 	return args.Get(0).(replication.Config), args.Error(1)
 }
 
+func (m *MockMinioClient) GetBucketPolicy(ctx context.Context, bucketName string) (string, error) {
+	args := m.Called(ctx, bucketName)
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockMinioClient) SetBucketPolicy(ctx context.Context, bucketName, policy string) error {
+	args := m.Called(ctx, bucketName, policy)
+	return args.Error(0)
+}
+
 // MockMinioFactory implements MinioClientFactory for testing
 type MockMinioFactory struct {
 	mock.Mock

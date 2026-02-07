@@ -46,6 +46,7 @@ func TestBucketJourney(t *testing.T) {
 	mockClient.On("DataUsageInfo", mock.Anything).Return(madmin.DataUsageInfo{
 		BucketSizes: map[string]uint64{"bucket-1": 1024, "bucket-2": 2048},
 	}, nil)
+	mockClient.On("GetBucketPolicy", mock.Anything, mock.Anything).Return("", nil)
 	mockClient.On("MakeBucket", mock.Anything, "newbucket", mock.Anything).Return(nil)
 	mockClient.On("RemoveBucket", mock.Anything, "newbucket").Return(nil)
 
@@ -117,6 +118,7 @@ func TestObjectBrowserJourney(t *testing.T) {
 		IsTruncated:           false,
 		NextContinuationToken: "",
 	}, nil)
+	mockClient.On("GetBucketPolicy", mock.Anything, "my-bucket").Return("", nil)
 	mockClient.On("PutObject", mock.Anything, "my-bucket", "testfile.txt", mock.Anything, mock.Anything, mock.Anything).Return(minio.UploadInfo{}, nil)
 
 	encrypted, _ := authService.EncryptCredentials(creds)

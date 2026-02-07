@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"archive/zip"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -28,6 +29,43 @@ type BucketsHandler struct {
 
 func NewBucketsHandler(minioFactory services.MinioClientFactory) *BucketsHandler {
 	return &BucketsHandler{minioFactory: minioFactory}
+}
+
+// canonicalJSON re-serializes JSON to a canonical form (sorted keys, no extra whitespace).
+func canonicalJSON(raw string) string {
+	var obj interface{}
+	if err := json.Unmarshal([]byte(raw), &obj); err != nil {
+		return ""
+	}
+	b, err := json.Marshal(obj)
+	if err != nil {
+		return ""
+	}
+	return string(b)
+}
+
+// detectPolicyType determines whether a policy matches a known preset
+// by comparing canonical JSON representations.
+func detectPolicyType(policyJSON string, bucketName string) string {
+	if policyJSON == "" {
+		return "private"
+	}
+	canonical := canonicalJSON(policyJSON)
+	if canonical == "" {
+		return "custom"
+	}
+
+	presets := map[string]string{
+		"public-read":       fmt.Sprintf(`{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::%s/*"]}]}`, bucketName),
+		"public-read-write": fmt.Sprintf(`{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject","s3:PutObject","s3:DeleteObject"],"Resource":["arn:aws:s3:::%s/*"]}]}`, bucketName),
+	}
+
+	for name, preset := range presets {
+		if canonical == canonicalJSON(preset) {
+			return name
+		}
+	}
+	return "custom"
 }
 
 // ListBuckets renders the buckets page
@@ -60,6 +98,7 @@ func (h *BucketsHandler) ListBuckets(c echo.Context) error {
 		minio.BucketInfo
 		Size          uint64
 		FormattedSize string
+		PolicyType    string
 	}
 
 	var bucketsWithStats []BucketWithStats
@@ -68,10 +107,16 @@ func (h *BucketsHandler) ListBuckets(c echo.Context) error {
 		if usage.BucketSizes != nil {
 			size = usage.BucketSizes[b.Name]
 		}
+
+		// Fetch bucket policy
+		policy, _ := client.GetBucketPolicy(c.Request().Context(), b.Name)
+		policyType := detectPolicyType(policy, b.Name)
+
 		bucketsWithStats = append(bucketsWithStats, BucketWithStats{
 			BucketInfo:    b,
 			Size:          size,
 			FormattedSize: utils.FormatBytes(size),
+			PolicyType:    policyType,
 		})
 	}
 
@@ -237,6 +282,23 @@ func (h *BucketsHandler) BrowseBucket(c echo.Context) error {
 		}
 	}
 
+	// Fetch bucket policy
+	policy, _ := client.GetBucketPolicy(c.Request().Context(), bucketName)
+	policyType := detectPolicyType(policy, bucketName)
+	formattedPolicy := ""
+	if policy != "" {
+		var jsonObj interface{}
+		if json.Unmarshal([]byte(policy), &jsonObj) == nil {
+			if formatted, err := json.MarshalIndent(jsonObj, "", "  "); err == nil {
+				formattedPolicy = string(formatted)
+			} else {
+				formattedPolicy = policy
+			}
+		} else {
+			formattedPolicy = policy
+		}
+	}
+
 	return c.Render(http.StatusOK, "browser", map[string]interface{}{
 		"ActiveNav":             "buckets",
 		"BucketName":            bucketName,
@@ -246,6 +308,10 @@ func (h *BucketsHandler) BrowseBucket(c echo.Context) error {
 		"Breadcrumbs":           breadcrumbs,
 		"HasMore":               result.IsTruncated,
 		"NextContinuationToken": result.NextContinuationToken,
+		"PolicyType":            policyType,
+		"Policy":                policy,
+		"FormattedPolicy":       formattedPolicy,
+		"HasPolicy":             policy != "",
 	})
 }
 
@@ -579,11 +645,31 @@ func (h *BucketsHandler) BucketSettings(c echo.Context) error {
 		}
 	}
 
+	// Get bucket policy
+	policy, _ := client.GetBucketPolicy(c.Request().Context(), bucketName)
+	policyType := detectPolicyType(policy, bucketName)
+	formattedPolicy := ""
+	if policy != "" {
+		var jsonObj interface{}
+		if json.Unmarshal([]byte(policy), &jsonObj) == nil {
+			if formatted, err := json.MarshalIndent(jsonObj, "", "  "); err == nil {
+				formattedPolicy = string(formatted)
+			} else {
+				formattedPolicy = policy
+			}
+		} else {
+			formattedPolicy = policy
+		}
+	}
+
 	return c.Render(http.StatusOK, "bucket_settings", map[string]interface{}{
 		"ActiveNav":         "buckets",
 		"BucketName":        bucketName,
 		"VersioningStatus":  versioningStatus,
 		"VersioningEnabled": versioningConfig.Enabled(),
+		"PolicyType":        policyType,
+		"FormattedPolicy":   formattedPolicy,
+		"HasPolicy":         policy != "",
 	})
 }
 
@@ -1170,4 +1256,135 @@ func isPreviewable(contentType string, size int64) bool {
 		return false
 	}
 	return isImageType(contentType) || isTextType(contentType) || isVideoType(contentType)
+}
+
+// GetBucketPolicy returns the policy for a bucket
+func (h *BucketsHandler) GetBucketPolicy(c echo.Context) error {
+	bucketName := c.Param("bucketName")
+
+	creds, err := GetCredentials(c)
+	if err != nil {
+		return c.Render(http.StatusOK, "bucket_policy", map[string]interface{}{
+			"BucketName": bucketName,
+			"PolicyType": "private",
+			"Error":      "Unauthorized",
+		})
+	}
+
+	client, err := h.minioFactory.NewClient(*creds)
+	if err != nil {
+		return c.Render(http.StatusOK, "bucket_policy", map[string]interface{}{
+			"BucketName": bucketName,
+			"PolicyType": "private",
+			"Error":      "Failed to connect to MinIO",
+		})
+	}
+
+	policy, err := client.GetBucketPolicy(c.Request().Context(), bucketName)
+	if err != nil {
+		// No policy is not an error, just return empty
+		policy = ""
+	}
+
+	// Determine policy type for display
+	policyType := detectPolicyType(policy, bucketName)
+
+	// Format JSON for display
+	formattedPolicy := policy
+	if policy != "" {
+		var jsonObj interface{}
+		if json.Unmarshal([]byte(policy), &jsonObj) == nil {
+			if formatted, err := json.MarshalIndent(jsonObj, "", "  "); err == nil {
+				formattedPolicy = string(formatted)
+			}
+		}
+	}
+
+	return c.Render(http.StatusOK, "bucket_policy", map[string]interface{}{
+		"BucketName":      bucketName,
+		"Policy":          policy,
+		"FormattedPolicy": formattedPolicy,
+		"PolicyType":      policyType,
+		"HasPolicy":       policy != "",
+	})
+}
+
+// SetBucketPolicy sets the policy for a bucket
+func (h *BucketsHandler) SetBucketPolicy(c echo.Context) error {
+	creds, err := GetCredentials(c)
+	if err != nil {
+		return err
+	}
+
+	bucketName := c.Param("bucketName")
+	policyType := c.FormValue("policyType")
+	customPolicy := c.FormValue("policy")
+
+	client, err := h.minioFactory.NewClient(*creds)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to connect to MinIO")
+	}
+
+	var policy string
+
+	switch policyType {
+	case "private":
+		// Empty policy = private (remove policy)
+		policy = ""
+	case "public-read":
+		policy = fmt.Sprintf(`{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {"AWS": ["*"]},
+      "Action": ["s3:GetObject"],
+      "Resource": ["arn:aws:s3:::%s/*"]
+    }
+  ]
+}`, bucketName)
+	case "public-read-write":
+		policy = fmt.Sprintf(`{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {"AWS": ["*"]},
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+      "Resource": ["arn:aws:s3:::%s/*"]
+    }
+  ]
+}`, bucketName)
+	case "custom":
+		policy = customPolicy
+		// Validate JSON if not empty
+		if policy != "" {
+			var jsonObj interface{}
+			if err := json.Unmarshal([]byte(policy), &jsonObj); err != nil {
+				return c.Render(http.StatusBadRequest, "bucket_policy", map[string]interface{}{
+					"BucketName":      bucketName,
+					"Policy":          policy,
+					"FormattedPolicy": policy,
+					"PolicyType":      "custom",
+					"HasPolicy":       true,
+					"Error":           "Invalid JSON: " + err.Error(),
+				})
+			}
+		}
+	default:
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid policy type")
+	}
+
+	if err := client.SetBucketPolicy(c.Request().Context(), bucketName, policy); err != nil {
+		return c.Render(http.StatusInternalServerError, "bucket_policy", map[string]interface{}{
+			"BucketName":      bucketName,
+			"Policy":          policy,
+			"FormattedPolicy": policy,
+			"PolicyType":      policyType,
+			"HasPolicy":       policy != "",
+			"Error":           "Failed to set policy: " + err.Error(),
+		})
+	}
+
+	return HTMXRedirect(c, "/buckets/"+bucketName+"/settings")
 }

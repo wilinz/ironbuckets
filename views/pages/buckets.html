@@ -55,7 +55,20 @@
                 </div>
             </div>
             <a href="/buckets/{{ .Name }}" class="block">
-                <div class="font-bold text-lg text-white mb-1">{{ .Name }}</div>
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="font-bold text-lg text-white">{{ .Name }}</div>
+                    <!-- Policy Badge -->
+                    <span class="text-xs px-1.5 py-0.5 rounded flex items-center gap-1
+                        {{ if eq .PolicyType "private" }}bg-zinc-500/10 text-zinc-400
+                        {{ else if eq .PolicyType "public-read" }}bg-emerald-500/10 text-emerald-400
+                        {{ else if eq .PolicyType "public-read-write" }}bg-yellow-500/10 text-yellow-400
+                        {{ else }}bg-blue-500/10 text-blue-400{{ end }}">
+                        {{ if eq .PolicyType "private" }}Private
+                        {{ else if eq .PolicyType "public-read" }}Public Read
+                        {{ else if eq .PolicyType "public-read-write" }}Public R/W
+                        {{ else }}Custom{{ end }}
+                    </span>
+                </div>
                 <div class="text-sm text-zinc-500">
                     Created {{ .CreationDate.Format "Jan 2, 2006" }}
                 </div>

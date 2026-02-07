@@ -107,6 +107,10 @@ type MinioClient interface {
 
 	// Replication
 	GetBucketReplication(ctx context.Context, bucketName string) (replication.Config, error)
+
+	// Bucket Policy
+	GetBucketPolicy(ctx context.Context, bucketName string) (string, error)
+	SetBucketPolicy(ctx context.Context, bucketName, policy string) error
 }
 
 // MinioClientFactory creates authenticated clients
@@ -260,6 +264,14 @@ func (c *WrappedMinioClient) SetBucketNotification(ctx context.Context, bucketNa
 
 func (c *WrappedMinioClient) GetBucketReplication(ctx context.Context, bucketName string) (replication.Config, error) {
 	return c.client.GetBucketReplication(ctx, bucketName)
+}
+
+func (c *WrappedMinioClient) GetBucketPolicy(ctx context.Context, bucketName string) (string, error) {
+	return c.client.GetBucketPolicy(ctx, bucketName)
+}
+
+func (c *WrappedMinioClient) SetBucketPolicy(ctx context.Context, bucketName, policy string) error {
+	return c.client.SetBucketPolicy(ctx, bucketName, policy)
 }
 
 // RealMinioFactory is the production implementation

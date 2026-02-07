@@ -67,6 +67,7 @@ func (t *TemplateRenderer) parseTemplates() {
 	t.Templates["replication"] = template.Must(template.ParseFiles("views/partials/replication.html"))
 	t.Templates["versioning_status"] = template.Must(template.ParseFiles("views/partials/versioning_status.html"))
 	t.Templates["bucket_quota"] = template.Must(template.ParseFiles("views/partials/bucket_quota.html"))
+	t.Templates["bucket_policy"] = template.Must(template.ParseFiles("views/partials/bucket_policy.html"))
 	t.Templates["logs"] = template.Must(template.ParseFiles("views/partials/logs.html"))
 }
 
@@ -90,6 +91,7 @@ var selfExecutingTemplates = map[string]bool{
 	"replication":                  true,
 	"versioning_status":            true,
 	"bucket_quota":                 true,
+	"bucket_policy":                true,
 	"logs":                         true,
 }
 

@@ -84,6 +84,20 @@
                         <i data-lucide="arrow-left" size="20"></i>
                     </a>
                     <h1 class="text-lg font-semibold text-white">{{ .BucketName }}</h1>
+                    <!-- Policy Badge -->
+                    <button @click="policyModalOpen = true"
+                        class="flex items-center gap-1.5 text-xs px-2 py-1 rounded-md transition-colors cursor-pointer
+                        {{ if eq .PolicyType "private" }}bg-zinc-500/10 text-zinc-400 hover:bg-zinc-500/20
+                        {{ else if eq .PolicyType "public-read" }}bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20
+                        {{ else if eq .PolicyType "public-read-write" }}bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20
+                        {{ else }}bg-accent/10 text-accent hover:bg-accent/20{{ end }}"
+                        title="Click to view policy">
+                        <i data-lucide="shield" size="9"></i>
+                        {{ if eq .PolicyType "private" }}Private
+                        {{ else if eq .PolicyType "public-read" }}Public Read
+                        {{ else if eq .PolicyType "public-read-write" }}Public R/W
+                        {{ else }}Custom{{ end }}
+                    </button>
                 </div>
                 <div class="flex items-center gap-3">
                 <!-- Search -->
@@ -327,90 +341,146 @@
                 {{ len .Folders }} folder(s), {{ len .Objects }} file(s)
             </div>
         </div>
-    </main>
 
-    <!-- Preview Modal -->
-    <div x-show="previewOpen" x-cloak
-        class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-8"
-        @click.self="previewOpen = false"
-        @keydown.escape.window="previewOpen = false">
-        <div class="bg-surface border border-border rounded-xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            <!-- Modal Header -->
-            <div class="flex items-center justify-between p-4 border-b border-border">
-                <h3 class="font-semibold text-white truncate" x-text="previewName"></h3>
-                <div class="flex items-center gap-2">
-                    <a :href="'/buckets/{{ .BucketName }}/download?key=' + previewKey"
-                        class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-md transition-colors" title="Download">
-                        <i data-lucide="download" size="18"></i>
-                    </a>
-                    <button @click="previewOpen = false"
-                        class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-md transition-colors">
-                        <i data-lucide="x" size="18"></i>
+        <!-- Preview Modal -->
+        <div x-show="previewOpen" x-cloak
+            class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-8"
+            @click.self="previewOpen = false"
+            @keydown.escape.window="previewOpen = false">
+            <div class="bg-surface border border-border rounded-xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between p-4 border-b border-border">
+                    <h3 class="font-semibold text-white truncate" x-text="previewName"></h3>
+                    <div class="flex items-center gap-2">
+                        <a :href="'/buckets/{{ .BucketName }}/download?key=' + previewKey"
+                            class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-md transition-colors" title="Download">
+                            <i data-lucide="download" size="18"></i>
+                        </a>
+                        <button @click="previewOpen = false"
+                            class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-md transition-colors">
+                            <i data-lucide="x" size="18"></i>
+                        </button>
+                    </div>
+                </div>
+                <!-- Modal Content -->
+                <div class="flex-1 overflow-auto p-4 flex items-center justify-center bg-zinc-900 min-h-[400px]">
+                    <!-- Loading -->
+                    <div x-show="previewLoading" class="text-zinc-500">
+                        <i data-lucide="loader-2" size="32" class="animate-spin"></i>
+                    </div>
+                    <!-- Image Preview -->
+                    <template x-if="previewType === 'image' && !previewLoading">
+                        <img :src="'/buckets/{{ .BucketName }}/download?key=' + previewKey"
+                            @load="previewLoading = false"
+                            class="max-w-full max-h-full object-contain" />
+                    </template>
+                    <!-- Text Preview -->
+                    <template x-if="previewType === 'text' && !previewLoading">
+                        <pre class="text-sm text-zinc-300 whitespace-pre-wrap w-full h-full overflow-auto p-4 bg-zinc-950 rounded-lg"
+                            x-text="previewContent"></pre>
+                    </template>
+                    <!-- Video Preview -->
+                    <template x-if="previewType === 'video' && !previewLoading">
+                        <video controls class="max-w-full max-h-full" @loadeddata="previewLoading = false">
+                            <source :src="'/buckets/{{ .BucketName }}/download?key=' + previewKey" />
+                        </video>
+                    </template>
+                    <!-- Unsupported -->
+                    <template x-if="previewType === 'unsupported'">
+                        <div class="text-center text-zinc-500">
+                            <i data-lucide="file-question" size="64" class="mx-auto mb-4 opacity-50"></i>
+                            <p>Preview not available for this file type</p>
+                            <a :href="'/buckets/{{ .BucketName }}/download?key=' + previewKey"
+                                class="inline-flex items-center gap-2 mt-4 text-accent hover:underline">
+                                <i data-lucide="download" size="16"></i>
+                                Download to view
+                            </a>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload Progress Modal -->
+        <div x-show="uploadProgress.show" x-cloak
+            class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+            <div class="bg-surface border border-border rounded-xl p-6 w-full max-w-md">
+                <h3 class="font-semibold text-white mb-4">Uploading Files</h3>
+                <div class="space-y-3">
+                    <template x-for="(file, index) in uploadProgress.files" :key="index">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="file" size="16" class="text-zinc-500"></i>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm text-white truncate" x-text="file.name"></p>
+                                <div class="w-full bg-zinc-800 rounded-full h-1.5 mt-1">
+                                    <div class="bg-accent h-1.5 rounded-full transition-all"
+                                        :style="'width: ' + file.progress + '%'"></div>
+                                </div>
+                            </div>
+                            <span class="text-xs text-zinc-500" x-text="file.progress + '%'"></span>
+                        </div>
+                    </template>
+                </div>
+                <p class="text-sm text-zinc-500 mt-4" x-text="uploadProgress.status"></p>
+            </div>
+        </div>
+
+        <!-- Policy Modal -->
+        <div x-show="policyModalOpen" x-cloak
+            class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-8"
+            @click.self="policyModalOpen = false"
+            @keydown.escape.window="policyModalOpen = false">
+            <div class="bg-surface border border-border rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between p-4 border-b border-border">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="shield" size="20" class="text-zinc-400"></i>
+                        <h3 class="font-semibold text-white">Bucket Policy</h3>
+                        <span class="text-xs px-2 py-0.5 rounded
+                            {{ if eq .PolicyType "private" }}bg-zinc-500/10 text-zinc-400
+                            {{ else if eq .PolicyType "public-read" }}bg-emerald-500/10 text-emerald-400
+                            {{ else if eq .PolicyType "public-read-write" }}bg-yellow-500/10 text-yellow-400
+                            {{ else }}bg-accent/10 text-accent{{ end }}">
+                            {{ if eq .PolicyType "private" }}Private
+                            {{ else if eq .PolicyType "public-read" }}Public Read
+                            {{ else if eq .PolicyType "public-read-write" }}Public Read/Write
+                            {{ else }}Custom{{ end }}
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <a href="/buckets/{{ .BucketName }}/settings"
+                            class="text-sm text-accent hover:text-accent/80 transition-colors flex items-center gap-1">
+                            <i data-lucide="settings" size="14"></i>
+                            Edit
+                        </a>
+                        <button @click="policyModalOpen = false"
+                            class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-md transition-colors">
+                            <i data-lucide="x" size="18"></i>
+                        </button>
+                    </div>
+                </div>
+                <!-- Modal Content -->
+                <div class="flex-1 overflow-auto p-4 bg-zinc-900">
+                    {{ if .HasPolicy }}
+                    <pre class="text-sm text-zinc-300 font-mono whitespace-pre-wrap">{{ .FormattedPolicy }}</pre>
+                    {{ else }}
+                    <div class="text-center py-8 text-zinc-500">
+                        <i data-lucide="lock" size="32" class="mx-auto mb-3 opacity-50"></i>
+                        <p class="text-sm">No policy configured</p>
+                        <p class="text-xs mt-1">Only the bucket owner can access objects</p>
+                    </div>
+                    {{ end }}
+                </div>
+                <!-- Modal Footer -->
+                <div class="p-4 border-t border-border bg-surface flex justify-end">
+                    <button @click="policyModalOpen = false"
+                        class="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        Close
                     </button>
                 </div>
             </div>
-            <!-- Modal Content -->
-            <div class="flex-1 overflow-auto p-4 flex items-center justify-center bg-zinc-900 min-h-[400px]">
-                <!-- Loading -->
-                <div x-show="previewLoading" class="text-zinc-500">
-                    <i data-lucide="loader-2" size="32" class="animate-spin"></i>
-                </div>
-                <!-- Image Preview -->
-                <template x-if="previewType === 'image' && !previewLoading">
-                    <img :src="'/buckets/{{ .BucketName }}/download?key=' + previewKey"
-                        @load="previewLoading = false"
-                        class="max-w-full max-h-full object-contain" />
-                </template>
-                <!-- Text Preview -->
-                <template x-if="previewType === 'text' && !previewLoading">
-                    <pre class="text-sm text-zinc-300 whitespace-pre-wrap w-full h-full overflow-auto p-4 bg-zinc-950 rounded-lg"
-                        x-text="previewContent"></pre>
-                </template>
-                <!-- Video Preview -->
-                <template x-if="previewType === 'video' && !previewLoading">
-                    <video controls class="max-w-full max-h-full" @loadeddata="previewLoading = false">
-                        <source :src="'/buckets/{{ .BucketName }}/download?key=' + previewKey" />
-                    </video>
-                </template>
-                <!-- Unsupported -->
-                <template x-if="previewType === 'unsupported'">
-                    <div class="text-center text-zinc-500">
-                        <i data-lucide="file-question" size="64" class="mx-auto mb-4 opacity-50"></i>
-                        <p>Preview not available for this file type</p>
-                        <a :href="'/buckets/{{ .BucketName }}/download?key=' + previewKey"
-                            class="inline-flex items-center gap-2 mt-4 text-accent hover:underline">
-                            <i data-lucide="download" size="16"></i>
-                            Download to view
-                        </a>
-                    </div>
-                </template>
-            </div>
         </div>
-    </div>
-
-    <!-- Upload Progress Modal -->
-    <div x-show="uploadProgress.show" x-cloak
-        class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-        <div class="bg-surface border border-border rounded-xl p-6 w-full max-w-md">
-            <h3 class="font-semibold text-white mb-4">Uploading Files</h3>
-            <div class="space-y-3">
-                <template x-for="(file, index) in uploadProgress.files" :key="index">
-                    <div class="flex items-center gap-3">
-                        <i data-lucide="file" size="16" class="text-zinc-500"></i>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm text-white truncate" x-text="file.name"></p>
-                            <div class="w-full bg-zinc-800 rounded-full h-1.5 mt-1">
-                                <div class="bg-accent h-1.5 rounded-full transition-all"
-                                    :style="'width: ' + file.progress + '%'"></div>
-                            </div>
-                        </div>
-                        <span class="text-xs text-zinc-500" x-text="file.progress + '%'"></span>
-                    </div>
-                </template>
-            </div>
-            <p class="text-sm text-zinc-500 mt-4" x-text="uploadProgress.status"></p>
-        </div>
-    </div>
+    </main>
 
     <!-- Styled Confirm Dialog -->
     <dialog id="confirm-dialog" class="bg-transparent p-0 m-0 max-w-none w-full h-full backdrop:bg-black/60">
@@ -529,6 +599,9 @@
                 previewType: '',
                 previewContent: '',
                 previewLoading: false,
+
+                // Policy modal state
+                policyModalOpen: false,
 
                 // Upload progress
                 uploadProgress: {

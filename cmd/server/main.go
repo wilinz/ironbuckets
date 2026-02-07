@@ -131,6 +131,8 @@ func main() {
 	e.GET("/buckets/:bucketName/replication", bucketsHandler.GetReplication)
 	e.GET("/buckets/:bucketName/quota", bucketsHandler.GetBucketQuota)
 	e.POST("/buckets/:bucketName/quota", bucketsHandler.SetBucketQuota)
+	e.GET("/buckets/:bucketName/policy", bucketsHandler.GetBucketPolicy)
+	e.POST("/buckets/:bucketName/policy", bucketsHandler.SetBucketPolicy)
 
 	e.GET("/settings", settingsHandler.ShowSettings)
 	e.POST("/settings/restart", settingsHandler.RestartService)
