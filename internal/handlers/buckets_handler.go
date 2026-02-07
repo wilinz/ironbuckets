@@ -282,6 +282,13 @@ func (h *BucketsHandler) BrowseBucket(c echo.Context) error {
 		}
 	}
 
+	// Construct MinIO endpoint base URL
+	scheme := "https"
+	if !services.ShouldUseSSL(creds.Endpoint) {
+		scheme = "http"
+	}
+	endpointURL := scheme + "://" + creds.Endpoint
+
 	// Fetch bucket policy
 	policy, _ := client.GetBucketPolicy(c.Request().Context(), bucketName)
 	policyType := detectPolicyType(policy, bucketName)
@@ -312,6 +319,7 @@ func (h *BucketsHandler) BrowseBucket(c echo.Context) error {
 		"Policy":                policy,
 		"FormattedPolicy":       formattedPolicy,
 		"HasPolicy":             policy != "",
+		"EndpointURL":           endpointURL,
 	})
 }
 

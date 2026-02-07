@@ -302,13 +302,17 @@
                                         class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-md transition-colors" title="Info">
                                         <i data-lucide="info" size="16"></i>
                                     </button>
+                                    <button @click="copyDirectLink('{{ .Key }}')"
+                                        class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-md transition-colors" title="Copy Direct Link">
+                                        <i data-lucide="link" size="16"></i>
+                                    </button>
                                     <button
                                         hx-post="/buckets/{{ $.BucketName }}/share"
                                         hx-vals='{"key": "{{ .Key }}", "expires": "3600"}'
                                         hx-target="body"
                                         hx-swap="beforeend"
                                         class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-md transition-colors" title="Share">
-                                        <i data-lucide="link" size="16"></i>
+                                        <i data-lucide="share-2" size="16"></i>
                                     </button>
                                     <a href="/buckets/{{ $.BucketName }}/download?key={{ .Key }}" class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-md transition-colors" title="Download">
                                         <i data-lucide="download" size="16"></i>
@@ -422,6 +426,50 @@
                     </template>
                 </div>
                 <p class="text-sm text-zinc-500 mt-4" x-text="uploadProgress.status"></p>
+            </div>
+        </div>
+
+        <!-- Direct Link Dialog -->
+        <div x-show="directLinkDialogOpen" x-cloak
+            class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-8"
+            @click.self="directLinkDialogOpen = false"
+            @keydown.escape.window="directLinkDialogOpen = false">
+            <div class="bg-surface border border-border rounded-xl p-6 w-full max-w-lg shadow-2xl">
+                <div class="flex items-start gap-4 mb-6">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                        <i data-lucide="link" size="20" class="text-accent"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-white">Direct Link</h3>
+                        <p class="text-sm text-zinc-400 mt-1">This link does not expire</p>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-xs text-zinc-500 mb-1">URL</label>
+                    <div class="flex items-center gap-2">
+                        <input type="text" readonly :value="directLinkURL"
+                            class="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm font-mono text-white truncate" />
+                        <button @click="copyDirectLinkToClipboard()"
+                            class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-md transition-colors" title="Copy">
+                            <i data-lucide="copy" size="16"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 mb-6">
+                    <div class="flex items-start gap-2">
+                        <i data-lucide="alert-triangle" size="16" class="text-yellow-400 mt-0.5"></i>
+                        <p class="text-sm text-yellow-300/80">Only available when your bucket policy includes public read access.</p>
+                    </div>
+                </div>
+
+                <div class="flex justify-end">
+                    <button @click="directLinkDialogOpen = false"
+                        class="bg-white hover:bg-zinc-200 text-black px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        Done
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -603,6 +651,10 @@
                 // Policy modal state
                 policyModalOpen: false,
 
+                // Direct link dialog state
+                directLinkDialogOpen: false,
+                directLinkURL: '',
+
                 // Upload progress
                 uploadProgress: {
                     show: false,
@@ -668,6 +720,17 @@
 
                     // Re-init icons for modal
                     this.$nextTick(() => lucide.createIcons());
+                },
+
+                copyDirectLink(key) {
+                    const url = '{{ .EndpointURL }}/{{ .BucketName }}/' + key;
+                    this.directLinkURL = url;
+                    this.directLinkDialogOpen = true;
+                    this.$nextTick(() => lucide.createIcons());
+                },
+
+                copyDirectLinkToClipboard() {
+                    navigator.clipboard.writeText(this.directLinkURL);
                 },
 
                 bulkDownload() {

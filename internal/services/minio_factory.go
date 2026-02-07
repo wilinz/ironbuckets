@@ -277,8 +277,12 @@ func (c *WrappedMinioClient) SetBucketPolicy(ctx context.Context, bucketName, po
 // RealMinioFactory is the production implementation
 type RealMinioFactory struct{}
 
-// shouldUseSSL determines if SSL should be used based on the endpoint.
+// ShouldUseSSL determines if SSL should be used based on the endpoint.
 // Returns false for localhost, 127.0.0.1, and docker service names.
+func ShouldUseSSL(endpoint string) bool {
+	return shouldUseSSL(endpoint)
+}
+
 func shouldUseSSL(endpoint string) bool {
 	// Local development endpoints
 	if endpoint == "localhost:9000" || endpoint == "127.0.0.1:9000" {
