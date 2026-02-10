@@ -1303,8 +1303,11 @@ func (h *BucketsHandler) GetBucketPolicy(c echo.Context) error {
 
 	policy, err := client.GetBucketPolicy(c.Request().Context(), bucketName)
 	if err != nil {
-		// No policy is not an error, just return empty
-		policy = ""
+		return c.Render(http.StatusOK, "bucket_policy", map[string]interface{}{
+			"BucketName": bucketName,
+			"PolicyType": "unknown",
+			"Error":      "Failed to fetch policy: " + err.Error(),
+		})
 	}
 
 	// Determine policy type for display
