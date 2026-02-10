@@ -29,6 +29,7 @@
                     </button>
                     <div
                         x-show="open"
+                        x-cloak
                         @click.away="open = false"
                         x-transition
                         class="absolute right-0 mt-2 w-48 bg-zinc-900 border border-zinc-700 rounded-lg shadow-lg z-50">
@@ -62,10 +63,12 @@
                         {{ if eq .PolicyType "private" }}bg-zinc-500/10 text-zinc-400
                         {{ else if eq .PolicyType "public-read" }}bg-emerald-500/10 text-emerald-400
                         {{ else if eq .PolicyType "public-read-write" }}bg-yellow-500/10 text-yellow-400
+                        {{ else if eq .PolicyType "unknown" }}bg-zinc-500/10 text-zinc-500
                         {{ else }}bg-blue-500/10 text-blue-400{{ end }}">
                         {{ if eq .PolicyType "private" }}Private
                         {{ else if eq .PolicyType "public-read" }}Public Read
                         {{ else if eq .PolicyType "public-read-write" }}Public R/W
+                        {{ else if eq .PolicyType "unknown" }}Unknown
                         {{ else }}Custom{{ end }}
                     </span>
                 </div>

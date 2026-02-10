@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/damacus/iron-buckets/internal/models"
@@ -101,23 +102,35 @@ func (h *BucketsHandler) ListBuckets(c echo.Context) error {
 		PolicyType    string
 	}
 
-	var bucketsWithStats []BucketWithStats
-	for _, b := range buckets {
+	// Fetch bucket policies concurrently
+	policyTypes := make([]string, len(buckets))
+	var wg sync.WaitGroup
+	for i, b := range buckets {
+		wg.Add(1)
+		go func(idx int, name string) {
+			defer wg.Done()
+			policy, err := client.GetBucketPolicy(c.Request().Context(), name)
+			if err != nil {
+				policyTypes[idx] = "unknown"
+				return
+			}
+			policyTypes[idx] = detectPolicyType(policy, name)
+		}(i, b.Name)
+	}
+	wg.Wait()
+
+	bucketsWithStats := make([]BucketWithStats, len(buckets))
+	for i, b := range buckets {
 		size := uint64(0)
 		if usage.BucketSizes != nil {
 			size = usage.BucketSizes[b.Name]
 		}
-
-		// Fetch bucket policy
-		policy, _ := client.GetBucketPolicy(c.Request().Context(), b.Name)
-		policyType := detectPolicyType(policy, b.Name)
-
-		bucketsWithStats = append(bucketsWithStats, BucketWithStats{
+		bucketsWithStats[i] = BucketWithStats{
 			BucketInfo:    b,
 			Size:          size,
 			FormattedSize: utils.FormatBytes(size),
-			PolicyType:    policyType,
-		})
+			PolicyType:    policyTypes[i],
+		}
 	}
 
 	return c.Render(http.StatusOK, "buckets", map[string]interface{}{
